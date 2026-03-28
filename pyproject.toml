@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyshroom"
+version = "0.1.0"
+description = "Spherical Harmonics Room (shroom): a Python library for room acoustics simulation, Ambisonics processing, and spherical microphone array modelling."
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Yhonatan Gayer"},
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.10.0",
+    "pyroomacoustics>=0.7",
+    "matplotlib>=3.5",
+    "sofar>=1.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "sounddevice"]
+
+[project.urls]
+Homepage = "https://github.com/Yhonatangayer/shroom"
+Repository = "https://github.com/Yhonatangayer/shroom"
+Issues = "https://github.com/Yhonatangayer/shroom/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+shroom = [
+    "data/*.npz",
+    "data/*.json",
+    "data/*.txt",
+    "data/*.md",
+    "data/*.wav",
+    "data/*.sofa",
+]

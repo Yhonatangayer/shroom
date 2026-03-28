@@ -1,0 +1,3 @@
+[submodule "src/spaudiopy"]
+	path = src/spaudiopy
+	url = https://github.com/chris-hld/spaudiopy.git
