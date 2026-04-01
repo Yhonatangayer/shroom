@@ -16,9 +16,9 @@ A Python library for simulating room acoustics using Spherical Harmonics (Ambiso
 *   **Visualization**: 2D and 3D plotting of room geometry, sources, and receiver orientation.
 
 ## Installation
-
+**install pyshroom** and not shroom
 ```bash
-pip install shroom
+pip install pyshroom
 ```
 
 For development (including tests):
