@@ -16,16 +16,43 @@ A Python library for simulating room acoustics using Spherical Harmonics (Ambiso
 *   **Visualization**: 2D and 3D plotting of room geometry, sources, and receiver orientation.
 
 ## Installation
-**install pyshroom** and not shroom
+
+The package is published on PyPI as **`pyshroom`** (not `shroom`). There are two install flavors:
+
+### 1. Minimal — just the core library
+
 ```bash
 pip install pyshroom
 ```
 
-For development (including tests):
+Installs `shroom` and its runtime dependencies (numpy, scipy, matplotlib, pyroomacoustics, sofar). This is all you need to simulate rooms, encode Ambisonics, and render binaural audio from your own scripts.
+
+### 2. With `shroom_dev` — extras for examples and projects
 
 ```bash
-pip install -e .[dev]
+pip install "pyshroom[dev]"
 ```
+
+Installs everything above **plus** the companion package **`shroom_dev`**, which bundles helper modules used by the examples, tests, and research projects in this repo:
+
+- `shroom_dev.plot` — `loglog_plot` for error curves with variance bands.
+- `shroom_dev.sound` — `play_audio` helper around `sounddevice`.
+- `shroom_dev.errors` — the ASM/BSM evaluation metrics used by the `projects/` scripts (`asm_mse_error`, `asm_bin_mse_error`, `asm_bin_magnitude_mse_error`, `linear_spectral_error`, `bsm_mse_error`, `bsm_mag_mse_error`).
+- `shroom_dev.file_utils` — extra file loaders.
+
+The `[dev]` extra also pulls in `pytest`, `black`, `sounddevice`, and `pyyaml`.
+
+### Running from a git checkout
+
+If you cloned the repo to hack on the library itself, install it editable:
+
+```bash
+git clone https://github.com/Yhonatangayer/shroom.git
+cd shroom
+pip install -e ".[dev]"
+```
+
+You can then run the example scripts under `examples/` and the research scripts under `projects/` directly — they import from `shroom` and `shroom_dev`.
 
 ## _Quick Start_
 

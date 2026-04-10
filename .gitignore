@@ -32,8 +32,7 @@ ENV/
 .DS_Store
 Thumbs.db
 
-data/sofa_hrtfs/
-data/sofa_arrays/
+data/
 /tests/hnm_ref.npz
 /tests/anm_ref.npz
 

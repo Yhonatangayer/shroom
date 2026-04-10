@@ -32,8 +32,7 @@ from shroom.acoustics.hrtf_processing import magls_hrtf
 from shroom.utils.dsp_utils import is_signal_frequency_symmetric, is_signal_frequency_sh_valid
 from shroom.acoustics.processors import ProcessorChain, ArrayDecoder, ASMEncoder, BinauralDecoder
 from shroom.acoustics.spatial_signal import SpatialSignal
-from asm_project.errors import asm_mse_error
-from bsm_project.errors import bsm_mse_error
+from shroom_dev.errors import asm_mse_error, bsm_mse_error
 
 ARIA_PATH = os.path.join(REPO_ROOT, "data", "sofa_arrays", "aria_atfs_fixed.sofa")
 SH_ORDER = 1

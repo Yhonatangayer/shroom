@@ -19,7 +19,7 @@ def get_stdlib_modules():
 STDLIB_MODULES = get_stdlib_modules()
 
 def get_install_requires():
-    """Parse dependencies from pyproject.toml without executing it."""
+    """Parse dependencies from pyproject.toml, including optional-dependencies."""
     try:
         import tomllib
     except ImportError:
@@ -28,7 +28,11 @@ def get_install_requires():
     with open(PYPROJECT_TOML, "rb") as f:
         data = tomllib.load(f)
 
-    return set(data.get("project", {}).get("dependencies", []))
+    project = data.get("project", {})
+    deps = set(project.get("dependencies", []))
+    for extra_deps in project.get("optional-dependencies", {}).values():
+        deps.update(extra_deps)
+    return deps
 
 def get_imports_from_file(filepath):
     """Extract imported module names from a python file."""
@@ -78,8 +82,8 @@ def test_imports_vs_requirements():
                 imports = get_imports_from_file(filepath)
 
                 for imp in imports:
-                    # Skip internal imports (shroom package itself)
-                    if imp == "shroom" or imp.startswith("."):
+                    # Skip internal imports (first-party packages under src/)
+                    if imp in {"shroom", "shroom_dev"} or imp.startswith("."):
                         continue
 
                     # Skip stdlib

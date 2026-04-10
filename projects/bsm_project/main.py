@@ -6,8 +6,8 @@ from shroom.paths import DEFAULT_HRTF_PATH
 from shroom.utils.file_utils import load_file
 from shroom.acoustics.spherical_array import SphericalArray
 from shroom.encoders.bsm import BSM
-from bsm_project.errors import bsm_mse_error, bsm_mag_mse_error
-from devutils.plot import loglog_plot
+from shroom_dev.errors import bsm_mse_error, bsm_mag_mse_error
+from shroom_dev.plot import loglog_plot
 
 MAT_PATH = '/Users/yhonag/Downloads/semiCirc_M6_ATF.mat'
 

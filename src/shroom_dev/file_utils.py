@@ -4,8 +4,8 @@ from typing import Dict
 import numpy as np
 import yaml
 
-from sh_room_sim.utils.file_utils import load_wav
-from sh_room_sim.utils.sofa import load_sofa
+from shroom.utils.file_utils import load_wav
+from shroom.utils.sofa import load_sofa
 
 
 def load_file_dev(file_path: str):

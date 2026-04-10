@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyshroom"
-version = "0.1.0"
+version = "0.1.1"
 description = "Spherical Harmonics Room (shroom): a Python library for room acoustics simulation, Ambisonics processing, and spherical microphone array modelling."
 readme = "README.md"
 license = "MIT"
@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "black", "sounddevice"]
+dev = ["pytest", "black", "sounddevice", "pyyaml"]
 
 [project.urls]
 Homepage = "https://github.com/Yhonatangayer/shroom"
@@ -51,3 +51,6 @@ shroom = [
     "data/*.wav",
     "data/*.sofa",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

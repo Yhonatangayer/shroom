@@ -13,7 +13,7 @@ from shroom.geometry.sampling import sphereicalGrid
 from shroom.utils.grid_utils import from_fibonacci_grid
 from shroom.encoders.asm import ASM
 from shroom.utils.file_utils import load_file
-from devutils.sound import play_audio
+from shroom_dev.sound import play_audio
 from scipy.spatial.transform import Rotation
 from shroom.paths import DEFAULT_HRTF_PATH, DEFAULT_WAV_PATH
 

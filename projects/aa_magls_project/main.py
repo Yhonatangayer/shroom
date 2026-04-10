@@ -8,8 +8,8 @@ from shroom.acoustics.spherical_array import SphericalArray
 from shroom.utils.grid_utils import from_fibonacci_grid
 from shroom.encoders.asm import ASM
 from shroom.acoustics.hrtf_processing import array_aware_magls_hrtf, magls_hrtf
-from asm_project.errors import asm_bin_magnitude_mse_error
-from devutils.plot import loglog_plot
+from shroom_dev.errors import asm_bin_magnitude_mse_error
+from shroom_dev.plot import loglog_plot
 
 FIGURES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "figures")
 

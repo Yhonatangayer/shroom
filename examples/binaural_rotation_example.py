@@ -4,7 +4,7 @@ from scipy.spatial.transform import Rotation
 from shroom.acoustics.room import Room
 from shroom.acoustics.processors import BinauralDecoder
 from shroom.utils.file_utils import load_file
-from devutils.sound import play_audio
+from shroom_dev.sound import play_audio
 from shroom.paths import DEFAULT_HRTF_PATH, DEFAULT_WAV_PATH
 
 # --- Configuration ---
