@@ -8,19 +8,16 @@ from shroom.acoustics.spherical_array import SphericalArray
 from shroom.encoders.bsm import BSM
 from shroom_dev.errors import bsm_mse_error, bsm_mag_mse_error
 from shroom_dev.plot import loglog_plot
+from shroom.utils.grid_utils import from_fibonacci_grid
 
-MAT_PATH = '/Users/yhonag/Downloads/semiCirc_M6_ATF.mat'
 
 FIGURES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "figures")
 
 def main():
     # --- Setup (parameters matched to MATLAB .mat file) ---
     fs = 48000
-    mat = scipy.io.loadmat(MAT_PATH)
-    mat_data = mat['out_data'][0, 0]
-    nFFT = int(mat_data['nFFT'][0, 0])
-    duration = nFFT / fs
-    Omega = mat_data['Omega']               # (1730, 3): [co, az, r=1]
+    duration = 0.016
+    nFFT = int(duration * fs)
 
     freqs = np.fft.fftfreq(nFFT, 1 / fs)
     pos_freqs = np.fft.rfftfreq(nFFT, 1 / fs)
@@ -29,7 +26,7 @@ def main():
     hrtf.resample(fs)
     hrtf.zero_pad(nFFT)
 
-    source_grid = sphereicalGrid(az=Omega[:, 1], co=Omega[:, 0])
+    source_grid = from_fibonacci_grid(240)
 
     hrtf.toFreq()
     hrtf.toSH(40)
