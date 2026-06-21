@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: "shroom: Spherical Harmonics Room"
+abstract: >-
+  A Python library for simulating room acoustics using Spherical Harmonics
+  (Ambisonics). It provides tools for simulating room impulse responses (ARIR),
+  spherical microphone arrays, and binaural rendering.
+type: software
+authors:
+  - family-names: Gayer
+    given-names: Yhonatan
+version: 0.1.1
+date-released: "2026-04-10"
+license: MIT
+repository-code: "https://github.com/Yhonatangayer/shroom"
+url: "https://github.com/Yhonatangayer/shroom"
+keywords:
+  - ambisonics
+  - spherical-harmonics
+  - room-acoustics
+  - binaural-rendering
+  - spatial-audio
+  - hrtf
+preferred-citation:
+  type: article
+  title: "SHroom: A Python Framework for Ambisonics Room Acoustics Simulation and Binaural Rendering"
+  authors:
+    - family-names: Gayer
+      given-names: Yhonatan
+  year: 2026
+  url: "https://arxiv.org/abs/2603.27342"
+  identifiers:
+    - type: other
+      value: "arXiv:2603.27342"
+      description: arXiv preprint
