@@ -46,16 +46,17 @@ def main():
     )
     source_grid = from_fibonacci_grid(480)
 
-    # array = SphericalArray(
-    #     source_grid=source_grid,
-    #     mics_grid=mics_grid,
-    #     r_mics=np.full(mics_grid.n_points, 0.1),
-    #     fs=FS,
-    #     duration=DURATION,
-    #     r_sphere=0.1,
-    #     sh_order_for_sm_calc=SH_ORDER,
-    # )
-    array = load_file("/Users/yhonag/repos/py/shroom/data/sofa_arrays/aria_atfs_fixed.sofa")
+    array = SphericalArray(
+        source_grid=source_grid,
+        mics_grid=mics_grid,
+        r_mics=np.full(mics_grid.n_points, 0.1),
+        fs=FS,
+        duration=DURATION,
+        r_sphere=0.1,
+        sh_order_for_sm_calc=SH_ORDER,
+    )
+    # Or simply using a .sofa file for the array. For example:
+    # array = load_file("/Users/yhonag/repos/py/shroom/data/sofa_arrays/aria_atfs_fixed.sofa")
 
     # Prepare array for ASM (Frequency Domain)
     array.toFreq()
