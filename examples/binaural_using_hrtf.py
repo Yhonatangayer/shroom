@@ -15,7 +15,7 @@ ABSORPTION = 0.8
 MAX_ISM_ORDER = 10
 HEAD_POS = [2.0, 2.0, 1.5]
 SOURCE_POS = [4.0, 4.0, 1.5]
-HEAD_ROTATION = [ 90, 0, 0]
+HEAD_ROTATION = [ 0, 0, 0]
 
 
 def main():

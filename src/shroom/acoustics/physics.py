@@ -64,7 +64,7 @@ def _compute_bn_diagonal(
 
     # Apply damping and masking
     if apply_damping:
-        bn_n = _apply_damping_and_masking(bn_n, k_safe, r_m, N)
+        bn_n = _apply_magnitude_damping(bn_n)
 
     # Handle DC (k=0): force n=0 real, zero n>=1 (j_n(0)=0 for n>=1 exactly at DC)
     dc_mask = k == 0.0
@@ -109,19 +109,25 @@ def _compute_bn_for_order(
         return 4 * np.pi * (-1j) * (k * r_s) * hn2_krs * scattering_term
 
 
-def _apply_damping_and_masking(
-    bn_n: np.ndarray, k: np.ndarray, r_m: float, N: int
-) -> np.ndarray:
-    """Applies damping and order masking to the radial functions."""
+def _apply_magnitude_damping(bn_n: np.ndarray) -> np.ndarray:
+    """Applies smooth magnitude damping to the radial functions.
+
+    Uses a Wiener-style gain ``|b_n|^2 / (|b_n|^2 + limit^2)`` that smoothly
+    suppresses numerically-insignificant radial coefficients (which dominate at
+    low frequencies for high orders) without amplifying them in the inverse.
+
+    A previous version also applied a per-order sigmoid order mask
+    ``1 / (1 + exp(n - (ka + 1)))``. That mask is a staircase of ~N sharp
+    spectral edges in frequency, which rings in the time domain and produces an
+    audible "ghost"/duplicate image when the radial filters are long (large
+    ``duration`` => fine frequency resolution => the ringing extends past the
+    ~10 ms echo-fusion window). The magnitude knee below already removes the same
+    insignificant coefficients smoothly, so the order mask is omitted.
+    """
     limit = 1e-4
     mag_sq = np.abs(bn_n) ** 2
     damping = mag_sq / (mag_sq + limit**2)
     bn_n *= damping
-
-    ka = k * r_m
-    for n in range(1, N + 1):
-        order_mask = 1 / (1 + np.exp(n - (ka + 1)))
-        bn_n[n, :] *= order_mask
 
     return bn_n
 
