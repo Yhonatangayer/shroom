@@ -41,8 +41,11 @@ def _compute_bn_diagonal(
         Distance of the point source in metres. Only used when
         source_type='point_source'. Default is 2.0.
     apply_damping : bool, optional
-        If True, applies Tikhonov magnitude damping and order masking to
-        the radial functions to improve numerical stability. Default is False.
+        If True, applies smooth Wiener-style magnitude damping to the radial
+        functions to improve numerical stability (see ``_apply_magnitude_damping``).
+        Default is False. Note: a previous per-order sigmoid "order mask" was
+        removed because it rang in the time domain (audible ghost image); the
+        magnitude knee alone provides the same stabilisation smoothly.
 
     Returns
     -------

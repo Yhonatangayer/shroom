@@ -7,21 +7,27 @@ Run once from the repo root:
 The saved values are then compared against fresh computations in
 tests/test_filter_precision.py at atol=1e-10.
 
-BSM note: physical SphericalArray steering matrices are rank-1 at DC (f=0)
-because all Bn radial functions collapse to the n=0 term. The tikhonov solver
-in bsm.py does not guard against this, so BSM filters are computed from a
-synthetic full-rank complex steering matrix instead.
+Decoupling note: ASM, BSM and AA-MagLS filters are all computed from a single
+*synthetic* full-rank complex steering matrix, NOT from a physical
+``SphericalArray``. This keeps the filter-algorithm regression tests independent
+of the array-generation physics (radial functions / damping in
+``shroom.acoustics.physics``), which is exercised separately in
+``tests/test_spherical_array.py``. Two practical benefits:
+
+* a physical steering matrix is rank-1 at DC (all Bn collapse to the n=0 term),
+  which the per-bin tikhonov solver does not guard against; the synthetic matrix
+  is full-rank at every bin.
+* changing the array model (e.g. removing the per-order ghost-causing order mask)
+  no longer forces these fixtures to be regenerated.
 """
 
 import pathlib
 import numpy as np
 
-from shroom.acoustics.spherical_array import SphericalArray
 from shroom.acoustics.spatial_signal import SpatialSignal
 from shroom.encoders.asm import ASM
 from shroom.encoders.bsm import BSM
 from shroom.acoustics.hrtf_processing import magls_hrtf, array_aware_magls_hrtf
-from shroom.geometry.sampling import sphereicalGrid
 from shroom.utils.grid_utils import from_fibonacci_grid
 
 OUT_DIR = pathlib.Path(__file__).parent
@@ -41,67 +47,52 @@ ASM_SH_ORDER = 1
 MAGLS_CUTOFF = 500.0
 
 
-def build_array_and_hrtf():
-    """Real SphericalArray + synthetic HRTF — used for ASM, MagLS, AA-MagLS."""
-    mics_grid = sphereicalGrid(
-        az=np.deg2rad(np.array([-90, -45, 0, 45, 90])),
-        co=np.deg2rad(np.array([90, 90 + 18, 90 - 18, 90 + 18, 90])),
-    )
+def build_synthetic_setup():
+    """Synthetic full-rank steering matrix + two HRTFs, all on one source grid.
+
+    The steering matrix ``array_mock`` is shared by ASM, BSM and AA-MagLS so none
+    of the filter fixtures depend on the physical array model. ``hrtf`` is a real
+    time-domain random HRTF (for MagLS / AA-MagLS, which need ``toSH``/``toTime``);
+    ``hrtf_mock`` is a frequency-domain complex random HRTF (for BSM).
+    """
     source_grid = from_fibonacci_grid(Q)
+    rng = np.random.default_rng(SEED)
 
-    array = SphericalArray(
-        fs=FS,
-        duration=DURATION,
-        r_sphere=R_SPHERE,
-        r_mics=np.full(N_MICS, R_SPHERE),
-        source_grid=source_grid,
-        mics_grid=mics_grid,
-        sphere_type="rigid",
-        sh_order_for_sm_calc=SH_ORDER_SM,
-        convert_to_time=False,
+    V = (rng.standard_normal((N_MICS, Q, N_FFT))
+         + 1j * rng.standard_normal((N_MICS, Q, N_FFT)))
+    array_mock = SpatialSignal(
+        data=V, fs=FS, is_time=False, is_space=True, grid=source_grid
     )
 
-    rng = np.random.default_rng(SEED)
+    H = (rng.standard_normal((2, Q, N_FFT))
+         + 1j * rng.standard_normal((2, Q, N_FFT)))
+    hrtf_mock = SpatialSignal(
+        data=H, fs=FS, is_time=False, is_space=True, grid=source_grid
+    )
+
     hrtf_time = rng.standard_normal((2, Q, N_FFT))
     hrtf = SpatialSignal(
         data=hrtf_time, fs=FS, is_time=True, is_space=True, grid=source_grid
     )
     hrtf.toFreq()
 
-    return array, hrtf, source_grid
-
-
-def build_bsm_setup(source_grid):
-    """Synthetic full-rank steering matrix + HRTF — used for BSM only."""
-    rng = np.random.default_rng(SEED)
-    V = (rng.standard_normal((N_MICS, Q, N_FFT))
-         + 1j * rng.standard_normal((N_MICS, Q, N_FFT)))
-    array_mock = SpatialSignal(
-        data=V, fs=FS, is_time=False, is_space=True, grid=source_grid
-    )
-    H = (rng.standard_normal((2, Q, N_FFT))
-         + 1j * rng.standard_normal((2, Q, N_FFT)))
-    hrtf_mock = SpatialSignal(
-        data=H, fs=FS, is_time=False, is_space=True, grid=source_grid
-    )
-    return array_mock, hrtf_mock
+    return array_mock, hrtf_mock, hrtf
 
 
 def main():
-    print("Building setup …")
-    array, hrtf, source_grid = build_array_and_hrtf()
-    array_bsm, hrtf_bsm = build_bsm_setup(source_grid)
+    print("Building synthetic setup …")
+    array_mock, hrtf_mock, hrtf = build_synthetic_setup()
 
-    # 1. ASM filters
+    # 1. ASM filters — synthetic matrix
     print("Computing ASM filters …")
-    asm = ASM(sh_order=ASM_SH_ORDER, array=array, fs=FS, duration=DURATION)
+    asm = ASM(sh_order=ASM_SH_ORDER, array=array_mock, fs=FS, duration=DURATION)
     cnm = asm.cnm.data.copy()
     np.savez_compressed(OUT_DIR / "asm_filters.npz", cnm=cnm)
     print(f"  saved asm_filters.npz  cnm{cnm.shape}")
 
     # 2. BSM filters (no MagLS) — synthetic matrix
     print("Computing BSM filters …")
-    bsm = BSM(array=array_bsm, hrtf=hrtf_bsm, use_magls=False, fs=FS)
+    bsm = BSM(array=array_mock, hrtf=hrtf_mock, use_magls=False, fs=FS)
     cl, cr = bsm.get_coefficients()
     np.savez_compressed(OUT_DIR / "bsm_filters.npz", cl=cl, cr=cr)
     print(f"  saved bsm_filters.npz  cl{cl.shape}  cr{cr.shape}")
@@ -109,8 +100,8 @@ def main():
     # 3. BSM filters with MagLS — synthetic matrix
     print("Computing BSM-MagLS filters …")
     bsm_magls = BSM(
-        array=array_bsm,
-        hrtf=hrtf_bsm,
+        array=array_mock,
+        hrtf=hrtf_mock,
         use_magls=True,
         magls_cutoff_frequency=MAGLS_CUTOFF,
         fs=FS,
@@ -127,10 +118,10 @@ def main():
     np.savez_compressed(OUT_DIR / "magls_hrtf_filters.npz", hnm=hnm_magls)
     print(f"  saved magls_hrtf_filters.npz  hnm{hnm_magls.shape}")
 
-    # 5. AA-MagLS HRTF
+    # 5. AA-MagLS HRTF — synthetic matrix
     print("Computing AA-MagLS HRTF …")
     hrtf_aa = array_aware_magls_hrtf(
-        hrtf=hrtf, asm=asm, array=array,
+        hrtf=hrtf, asm=asm, array=array_mock,
         sh_order=ASM_SH_ORDER, cutoff_over_freq=MAGLS_CUTOFF,
     )
     hrtf_aa.toFreq()

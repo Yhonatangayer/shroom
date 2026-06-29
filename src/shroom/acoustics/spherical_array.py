@@ -57,8 +57,10 @@ class SphericalArray(SpatialSignal):
           'plane_wave' uses Bn = 4π·iⁿ·b_n(k), independent of source distance.
         - r_s: Distance of the point source in metres. Only used when source_type='point_source'.
           Default is 2.0.
-        - apply_damping: If True, applies Tikhonov magnitude damping and order masking to Bn
-          to improve numerical stability. Default is True.
+        - apply_damping: If True, applies smooth Wiener-style magnitude damping to Bn
+          to improve numerical stability. Default is True. (A previous per-order
+          sigmoid order mask was removed: it rang in the time domain and produced an
+          audible ghost image; the magnitude knee alone stabilises the inverse smoothly.)
         - normalize_columns: If True, normalizes each steering vector to unit norm across
           the microphone axis for each (source, frequency) pair. Default is False.
         """
