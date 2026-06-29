@@ -171,10 +171,18 @@ If you use shroom in your research, please cite our paper:
 ```
 ## Changelog
 
-### 0.2.0 — BREAKING: `absorption` semantics fixed
+### 0.2.0
 
-The `absorption` coefficient is now applied directly as an **energy absorption**
-coefficient (e.g. `absorption=0.8` → 0.8), matching `materials=pra.Material(0.8)`.
+Three coupled changes. The first two are tied together (the pyroomacoustics upgrade
+is what forced the absorption fix); the third is an independent array-model fix.
+
+**1. pyroomacoustics ≥ 0.9 compatibility.** The minimum supported version was raised
+from `0.7` to `0.9`. Newer pyroomacoustics removed the deprecated `absorption=` kwarg
+in favour of `materials=pra.Material(...)`, which is what motivated the change below.
+
+**2. BREAKING: `absorption` semantics fixed.** The `absorption` coefficient is now
+applied directly as an **energy absorption** coefficient (e.g. `absorption=0.8` → 0.8),
+matching `materials=pra.Material(0.8)`.
 
 Previously the value was forwarded to pyroomacoustics' deprecated `absorption=` kwarg,
 which silently converted it as `1 - (1 - a)**2` (so `0.8` became an effective `0.96`)
@@ -187,6 +195,18 @@ To reproduce results generated with an earlier version, pass `absorption_mode="l
 Room(dimensions=[6.0, 5.0, 3.0], absorption=0.8)                       # 0.80 (new default)
 Room(dimensions=[6.0, 5.0, 3.0], absorption=0.8, absorption_mode="legacy")  # 0.96 (pre-0.2.0)
 ```
+
+**3. Spherical-array radial-function order mask removed (ghost-image fix).** The
+per-order sigmoid mask `1 / (1 + exp(n − (ka+1)))` was removed from the radial
+functions (`shroom.acoustics.physics`). Stacked across orders it formed a staircase of
+sharp spectral edges that rings in the time domain and is heard as a duplicate/ghost
+image for long radial filters (large `duration` ⇒ fine frequency resolution ⇒ ringing
+past the ~10 ms echo-fusion window). Damping is now only the smooth Wiener-style
+magnitude knee `|b_n|² / (|b_n|² + limit²)`, which already suppressed the same
+numerically-insignificant coefficients without any order/frequency gate. The steering
+matrix — and therefore ASM and AA-MagLS encoder filters — differ from shroom < 0.2.0;
+the change removes the ghost image and moves the simulated array closer to true sphere
+physics. No API changes.
 
 ## License
 
