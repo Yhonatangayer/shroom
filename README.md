@@ -169,6 +169,25 @@ If you use shroom in your research, please cite our paper:
       url={https://arxiv.org/abs/2603.27342}, 
 }
 ```
+## Changelog
+
+### 0.2.0 — BREAKING: `absorption` semantics fixed
+
+The `absorption` coefficient is now applied directly as an **energy absorption**
+coefficient (e.g. `absorption=0.8` → 0.8), matching `materials=pra.Material(0.8)`.
+
+Previously the value was forwarded to pyroomacoustics' deprecated `absorption=` kwarg,
+which silently converted it as `1 - (1 - a)**2` (so `0.8` became an effective `0.96`)
+and emitted a `DeprecationWarning`. Simulated reverberation will therefore differ from
+shroom < 0.2.0.
+
+To reproduce results generated with an earlier version, pass `absorption_mode="legacy"`:
+
+```python
+Room(dimensions=[6.0, 5.0, 3.0], absorption=0.8)                       # 0.80 (new default)
+Room(dimensions=[6.0, 5.0, 3.0], absorption=0.8, absorption_mode="legacy")  # 0.96 (pre-0.2.0)
+```
+
 ## License
 
 MIT License

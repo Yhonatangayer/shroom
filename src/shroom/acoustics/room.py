@@ -4,12 +4,14 @@ from typing import Optional, List, Union, Dict, Tuple
 from shroom.acoustics.spatial_signal import SpatialSignal
 from shroom.geometry.sampling import sphereicalGrid
 from scipy.signal import resample
+
 try:
     from scipy.special import sph_harm_y
 except ImportError:
     # Fallback for older SciPy versions where sph_harm exists but sph_harm_y does not
     try:
         from scipy.special import sph_harm
+
         def sph_harm_y(n, m, theta, phi):
             """
             Wrapper to make old sph_harm look like new sph_harm_y (hypothetically).
@@ -17,6 +19,7 @@ except ImportError:
             New (assumed): sph_harm_y(n, m, theta, phi) (n=degree, m=order, theta=colatitude, phi=azimuth)
             """
             return sph_harm(m, n, phi, theta)
+
     except ImportError:
         raise ImportError("Could not import sph_harm or sph_harm_y from scipy.special")
 
@@ -30,6 +33,7 @@ class Room:
         self,
         dimensions: Union[List[float], np.ndarray],
         absorption: Optional[Union[float, Dict, pra.Material]] = None,
+        absorption_mode: str = "energy",
         materials: Optional[Union[Material, Dict[str, Material]]] = None,
         max_ism_order: int = 10,
         sh_order: int = 14,
@@ -53,6 +57,16 @@ class Room:
             - If dict: Dictionary mapping wall names ('east', 'west', 'north', 'south', 'ceiling', 'floor') to absorption coefficients.
             - If pra.Material: A pyroomacoustics Material object.
             Default is None (must be provided if materials is None).
+            Coefficients are interpreted as energy absorption (see `absorption_mode`).
+        absorption_mode : {'energy', 'legacy'}, optional
+            How a float/dict `absorption` coefficient is interpreted. Default 'energy'.
+            - 'energy': the value is the energy absorption coefficient, applied directly
+              (e.g. 0.8 -> 0.8). Equivalent to passing ``materials=pra.Material(value)``.
+            - 'legacy': reproduces pre-0.2.0 behaviour, where the value was forwarded to
+              pyroomacoustics' deprecated ``absorption=`` kwarg and converted to energy
+              absorption as ``1 - (1 - a)**2`` (e.g. 0.8 -> 0.96). Use this only to
+              reproduce results generated with shroom < 0.2.0.
+            Ignored when `absorption` is a ``pra.Material`` or when `materials` is given.
         materials : pra.Material or dict, optional
             Material properties of the walls.
             - If pra.Material: A single material applied to all walls.
@@ -78,6 +92,7 @@ class Room:
         self._validate_inputs(
             dimensions,
             absorption,
+            absorption_mode,
             materials,
             max_ism_order,
             fs,
@@ -99,12 +114,35 @@ class Room:
         self.humidity = humidity
         self.ray_tracing = ray_tracing
 
+        self.absorption_mode = absorption_mode
+
+        # Map `absorption` to a pra.Material. We never use pyroomacoustics' deprecated
+        # `absorption=` kwarg, which silently converts the value as 1-(1-a)**2 and emits a
+        # DeprecationWarning. In 'legacy' mode we apply that same conversion ourselves so
+        # results match shroom < 0.2.0.
+        def _to_energy(coeff):
+            coeff = float(coeff)
+            if absorption_mode == "legacy":
+                return 1.0 - (1.0 - coeff) ** 2
+            return coeff
+
+        room_materials = self.materials
+        if absorption is not None:
+            if isinstance(absorption, pra.Material):
+                room_materials = absorption
+            elif isinstance(absorption, dict):
+                room_materials = {
+                    wall: pra.Material(_to_energy(coeff))
+                    for wall, coeff in absorption.items()
+                }
+            else:  # float / int
+                room_materials = pra.Material(_to_energy(absorption))
+
         # Create the pyroomacoustics ShoeBox room
         self.pra_room = pra.ShoeBox(
             self.dimensions,
             fs=self.fs,
-            absorption=absorption,
-            materials=self.materials,
+            materials=room_materials,
             max_order=self.max_order,
             sigma2_awgn=self.sigma2_awgn,
             air_absorption=self.air_absorption,
@@ -517,6 +555,7 @@ class Room:
         self,
         dimensions: Union[List[float], np.ndarray],
         absorption: Optional[Union[float, Dict, pra.Material]],
+        absorption_mode: str,
         materials: Optional[Union[pra.Material, Dict]],
         max_order: int,
         fs: int,
@@ -556,6 +595,11 @@ class Room:
                     f"Absorption coefficient must be between 0 and 1, got {absorption}"
                 )
 
+        if absorption_mode not in ("energy", "legacy"):
+            raise ValueError(
+                f"absorption_mode must be 'energy' or 'legacy', got {absorption_mode!r}"
+            )
+
         if not (isinstance(max_order, (int, np.integer)) and max_order >= 0):
             raise ValueError(
                 f"max_ism_order must be a non-negative integer, got {max_order}"
@@ -581,9 +625,7 @@ class Room:
 
         if humidity is not None:
             if not (isinstance(humidity, (float, int)) and 0 <= humidity <= 100):
-                raise ValueError(
-                    f"humidity must be between 0 and 100, got {humidity}"
-                )
+                raise ValueError(f"humidity must be between 0 and 100, got {humidity}")
 
         if not isinstance(ray_tracing, bool):
             raise TypeError(
@@ -654,25 +696,26 @@ class Room:
 
         # --- Vectorised: compute all (n, m) SH values in one broadcast call ---
         # Build index arrays: ns[k] / ms[k] are the degree/order for ACN channel k
-        ns_arr = np.array([n for n in range(sh_order + 1)
-                           for m in range(-n, n + 1)], dtype=np.int64)[:, None]
-        ms_arr = np.array([m for n in range(sh_order + 1)
-                           for m in range(-n, n + 1)], dtype=np.int64)[:, None]
+        ns_arr = np.array(
+            [n for n in range(sh_order + 1) for m in range(-n, n + 1)], dtype=np.int64
+        )[:, None]
+        ms_arr = np.array(
+            [m for n in range(sh_order + 1) for m in range(-n, n + 1)], dtype=np.int64
+        )[:, None]
 
         # Y_all: (n_sh_channels, n_images) — all SH values in one call
-        Y_all = sph_harm_y(ns_arr, ms_arr,
-                           colatitude[None, :], azimuth[None, :]).conj()
+        Y_all = sph_harm_y(ns_arr, ms_arr, colatitude[None, :], azimuth[None, :]).conj()
 
         # Effective amplitude per image source: sum bands, then weight by SH
         # oct_band_amplitude: (n_bands, n_images) — sum over bands first
-        att_summed = oct_band_amplitude.sum(axis=0)          # (n_images,)
-        gains_all  = Y_all * att_summed                      # (n_sh_channels, n_images)
+        att_summed = oct_band_amplitude.sum(axis=0)  # (n_images,)
+        gains_all = Y_all * att_summed  # (n_sh_channels, n_images)
 
         for i in range(len(time_ip)):
             end = min(time_ip[i] + fdl, N)
             length = end - time_ip[i]
-            arir_data[0, :, time_ip[i]:end] += (
-                gains_all[:, i:i+1] * frac_delays[i:i+1, :length]
+            arir_data[0, :, time_ip[i] : end] += (
+                gains_all[:, i : i + 1] * frac_delays[i : i + 1, :length]
             )
 
         if self._remove_dc:

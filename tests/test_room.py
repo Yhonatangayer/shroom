@@ -1,5 +1,8 @@
+import warnings
+
 import pytest
 import numpy as np
+import pyroomacoustics as pra
 import os
 from shroom.acoustics.room import Room
 from shroom.acoustics.spatial_signal import SpatialSignal
@@ -124,7 +127,7 @@ def test_binaural_decoding(basic_room):
     )
 
     # 4. Decode
-    decoder = BinauralDecoder(mock_hrtf, sh_order=3, output_format='SpatialSignal')
+    decoder = BinauralDecoder(mock_hrtf, sh_order=3, output_format="SpatialSignal")
     binaural_output = decoder.process(amb_signal)
 
     # Check output
@@ -134,6 +137,78 @@ def test_binaural_decoding(basic_room):
     assert binaural_output.data.shape[1] == 1
     assert binaural_output.data.shape[2] > len(signal)
     assert np.sum(np.abs(binaural_output.data)) > 0
+
+
+def _wall_absorption(room):
+    """Energy absorption coefficient applied to the room's first wall."""
+    return float(room.pra_room.walls[0].absorption[0])
+
+
+@pytest.mark.parametrize("coeff", [0.1, 0.2, 0.5, 0.8])
+def test_absorption_energy_mode_applied_directly(coeff):
+    """Default 'energy' mode applies the coefficient as energy absorption directly."""
+    room = Room(dimensions=[5, 4, 3], absorption=coeff, fs=48000, sh_order=3)
+    assert _wall_absorption(room) == pytest.approx(coeff, abs=1e-6)
+
+
+@pytest.mark.parametrize("coeff", [0.1, 0.2, 0.5, 0.8])
+def test_absorption_energy_mode_matches_material(coeff):
+    """absorption=a (energy) must equal materials=pra.Material(a)."""
+    room_abs = Room(dimensions=[5, 4, 3], absorption=coeff, fs=48000, sh_order=3)
+    room_mat = Room(
+        dimensions=[5, 4, 3], materials=pra.Material(coeff), fs=48000, sh_order=3
+    )
+    assert _wall_absorption(room_abs) == pytest.approx(
+        _wall_absorption(room_mat), abs=1e-6
+    )
+
+
+@pytest.mark.parametrize("coeff", [0.1, 0.2, 0.5, 0.8])
+def test_absorption_legacy_mode_reproduces_old_behavior(coeff):
+    """'legacy' mode reproduces the pre-0.2.0 1-(1-a)**2 conversion."""
+    room = Room(
+        dimensions=[5, 4, 3],
+        absorption=coeff,
+        absorption_mode="legacy",
+        fs=48000,
+        sh_order=3,
+    )
+    expected = 1.0 - (1.0 - coeff) ** 2
+    assert _wall_absorption(room) == pytest.approx(expected, abs=1e-6)
+
+
+def test_absorption_dict_energy_mode():
+    """Per-wall dict absorption is applied directly in energy mode."""
+    walls = {
+        "east": 0.1,
+        "west": 0.2,
+        "north": 0.3,
+        "south": 0.4,
+        "ceiling": 0.5,
+        "floor": 0.6,
+    }
+    room = Room(dimensions=[5, 4, 3], absorption=walls, fs=48000, sh_order=3)
+    applied = {w.name: float(w.absorption[0]) for w in room.pra_room.walls}
+    for name, coeff in walls.items():
+        assert applied[name] == pytest.approx(coeff, abs=1e-6)
+
+
+def test_absorption_no_deprecation_warning():
+    """Constructing a Room with a float absorption must not emit a DeprecationWarning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        Room(dimensions=[5, 4, 3], absorption=0.8, fs=48000, sh_order=3)
+
+
+def test_invalid_absorption_mode_raises():
+    with pytest.raises(ValueError, match="absorption_mode"):
+        Room(
+            dimensions=[5, 4, 3],
+            absorption=0.5,
+            absorption_mode="bogus",
+            fs=48000,
+            sh_order=3,
+        )
 
 
 def test_compare_arir_generation(specific_room):
