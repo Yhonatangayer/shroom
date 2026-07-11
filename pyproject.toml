@@ -9,7 +9,7 @@ description = "Spherical Harmonics Room (shroom): a Python library for room acou
 readme = "README.md"
 license = "MIT"
 authors = [
-    {name = "Yhonatan Gayer"},
+    {name = "Yhonatan Gayer", email = "yhonatangayer@gmail.com"},
 ]
 requires-python = ">=3.9"
 classifiers = [

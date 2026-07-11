@@ -39,3 +39,9 @@ data/
 # claude
 CLAUDE.md
 .claude
+
+# scratch: source for the JOSS paper (kept locally, not committed)
+tmp-paper-forclaude/
+
+# benchmark output figures
+benchmarks/figures/

@@ -9,7 +9,7 @@ from shroom.acoustics.processors import (
     BinauralDecoder,
 )
 from shroom.geometry.sampling import sphereicalGrid
-from shroom.utils.grid_utils import from_spaudiopy_grid, from_fibonacci_grid
+from shroom.utils.grid_utils import from_fibonacci_grid
 from shroom.encoders.asm import ASM
 from shroom.utils.file_utils import load_file
 from shroom_dev.sound import play_audio

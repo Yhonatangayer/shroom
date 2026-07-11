@@ -9,8 +9,10 @@ type: software
 authors:
   - family-names: Gayer
     given-names: Yhonatan
-version: 0.1.1
-date-released: "2026-04-10"
+    orcid: "https://orcid.org/0009-0009-1156-9087"
+    affiliation: "Ben-Gurion University of the Negev"
+version: 0.2.0
+date-released: "2026-06-29"
 license: MIT
 repository-code: "https://github.com/Yhonatangayer/shroom"
 url: "https://github.com/Yhonatangayer/shroom"
