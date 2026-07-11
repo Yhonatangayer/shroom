@@ -45,3 +45,9 @@ tmp-paper-forclaude/
 
 # benchmark output figures
 benchmarks/figures/
+
+# coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/

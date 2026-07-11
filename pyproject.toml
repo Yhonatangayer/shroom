@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "black", "sounddevice", "pyyaml"]
+dev = ["pytest", "pytest-cov", "black", "sounddevice", "pyyaml"]
 
 [project.urls]
 Homepage = "https://github.com/Yhonatangayer/shroom"
@@ -54,3 +54,10 @@ shroom = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["shroom"]
+omit = ["*/shroom_dev/*"]
+
+[tool.coverage.report]
+show_missing = true
