@@ -89,6 +89,31 @@ def test_asm_class(real_array_signal):
 
     assert cnm_signal.data.shape == (M, L, F)
 
+def test_asm_dc_constraint(real_array_signal):
+    """ASM DC bin: higher-order channels are zero, omnidirectional is real.
+
+    Array-agnostic property of the ASM encoder (also checked against the real ARIA
+    array in test_aria_asm_bsm.py, which is skipped when that data file is absent).
+    """
+    sh_order = 1
+    asm = ASM(sh_order=sh_order, array=real_array_signal, fs=real_array_signal.fs, duration=0.1)
+    cnm = asm.calculate().data  # (M, nm, F)
+    assert np.allclose(cnm[:, 1:, 0], 0.0), "ASM DC: higher-order channels are not zero."
+    assert np.allclose(cnm[:, 0, 0].imag, 0.0), "ASM DC: (0,0) channel is not real."
+
+
+def test_asm_nyquist_constraint(real_array_signal):
+    """ASM Nyquist bin: higher-order channels are zero, omnidirectional is real."""
+    sh_order = 1
+    asm = ASM(sh_order=sh_order, array=real_array_signal, fs=real_array_signal.fs, duration=0.1)
+    cnm = asm.calculate().data  # (M, nm, F)
+    F = cnm.shape[-1]
+    if F % 2 == 0:
+        nyq = F // 2
+        assert np.allclose(cnm[:, 1:, nyq], 0.0), "ASM Nyquist: higher-order channels are not zero."
+        assert np.allclose(cnm[:, 0, nyq].imag, 0.0), "ASM Nyquist: (0,0) channel is not real."
+
+
 def test_encode_amb(real_array_signal):
     """Test encoding microphone signals to Ambisonics."""
     sh_order = 1
