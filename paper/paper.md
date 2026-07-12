@@ -24,12 +24,12 @@ bibliography: paper.bib
 `shroom` (Spherical Harmonics ROOM) is an open-source Python library for simulating room
 acoustics in the spherical-harmonics (SH) / Ambisonics domain and rendering the result to
 binaural audio. It computes image-source reflections with the image-source method
-[@Image-method-Allen1979] and projects every source onto an SH basis
-[@SH_Processing-book; @book-Ambisonics] in a single batched step, producing an Ambisonic
+[@allen1979JASA] and projects every source onto an SH basis
+[@rafaely2015SphArray; @zotter2019Ambisonics] in a single batched step, producing an Ambisonic
 Room Impulse Response (ARIR). All downstream processing — binaural decoding with
 head-related transfer functions (HRTFs), spherical microphone-array simulation, Ambisonics
-Signal Matching (ASM) [@ASM] and Binaural Signal Matching (BSM) [@BSM_journal_paper]
-encoding, and dynamic listener head rotation via Wigner-D matrices [@Wigner-D] — operates on
+Signal Matching (ASM) [@gayer2024ICASSPW] and Binaural Signal Matching (BSM) [@madmoni2024arXiv]
+encoding, and dynamic listener head rotation via Wigner-D matrices [@magariyachi2020JASA] — operates on
 this same ARIR through a small set of composable processors.
 
 The core abstraction is a `SpatialSignal` object carrying data of shape
@@ -43,21 +43,21 @@ A bundled HRTF dataset lets users run the full pipeline immediately after
 # Statement of need
 
 Room-acoustics simulation in Python is well served by `pyroomacoustics`
-[@pyroomacoustics-Scheibler2018], which provides an efficient image-source engine, ray
+[@scheibler2018ICASSP], which provides an efficient image-source engine, ray
 tracing, and array-processing tools. `shroom` builds directly on its image-source geometry.
 However, `pyroomacoustics` never enters the SH domain: its binaural path relies on
 nearest-neighbour HRTF selection, and every change of listener orientation forces
 re-accumulation of all $O(R^3)$ image sources at reflection order $R$. This makes it
 unsuitable for the SH-domain workflows that are now standard in spatial-audio research —
-Magnitude Least Squares (MagLS) HRTF pre-processing [@HRTF_MagLS; @Ambisonics_MagLS],
-Wigner-D head rotation, spherical-array modelling [@Spherical-Ambisonics], and composable
+Magnitude Least Squares (MagLS) HRTF pre-processing [@schorkhuber2018DAGA; @lubeck2020JAES],
+Wigner-D head rotation, spherical-array modelling [@rafaely2005TASP], and composable
 SH-domain encoders.
 
 `shroom` fills this gap. By projecting all image sources onto the SH basis once, binaural
 decoding reduces to a single matrix–filter product that is independent of source count, so
 the decode cost is paid once and amortises over multiple sources and over head orientations.
 On top of the shared ARIR it provides capabilities absent from `pyroomacoustics`: MagLS and
-array-aware MagLS rendering, real-time Wigner-D head rotation, rigid/open spherical
+array-aware MagLS rendering [@gayer2026TASLP], real-time Wigner-D head rotation, rigid/open spherical
 microphone-array simulation with configurable radial models, and ASM/BSM encoders for
 arbitrary arrays. This makes `shroom` a practical research tool for developing and evaluating
 Ambisonics capture, encoding, and binaural-reproduction algorithms within a single
@@ -66,15 +66,15 @@ consistent Python API.
 The accompanying preprint [@gayer2026shroom] reports a detailed evaluation. In brief, MagLS
 rendering reaches perceptual transparency at low SH orders — approximately 2 dB log-spectral
 distance to a high-order reference at order 5, within the reported 1–2 dB just-noticeable
-difference [@benhur2017spectral; @Engel2022] — and cached Wigner-D head rotation costs well
+difference [@benhur2017spectral; @engel2022AcuActa] — and cached Wigner-D head rotation costs well
 under 1 ms per frame at order 3. The library is intended for spatial-audio and acoustics
 researchers, and is suitable for teaching Ambisonics and SH signal processing.
 
 # Acknowledgements
 
 The bundled HRTF data is the Neumann KU 100 spherical far-field HRIR compilation
-[@HRTF_data_set]. Room geometry and image-source computation build on `pyroomacoustics`
-[@pyroomacoustics-Scheibler2018], and the MagLS implementation follows the formulation of
-Schörkhuber et al. [@HRTF_MagLS].
+[@hrir2020KU100]. Room geometry and image-source computation build on `pyroomacoustics`
+[@scheibler2018ICASSP], and the MagLS implementation follows the formulation of
+Schörkhuber et al. [@schorkhuber2018DAGA].
 
 # References
