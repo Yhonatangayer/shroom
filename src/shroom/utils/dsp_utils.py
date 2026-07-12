@@ -332,24 +332,10 @@ def is_signal_frequency_symmetric(
         )
         return False
 
-    # Check Nyquist (if even length)
+    # Nyquist bin (even-length full FFT): for a real signal the bin at index N/2 must
+    # be real. Full-FFT layout is [DC, positive(1..N/2-1), Nyquist(N/2), negative(N/2+1..N-1)].
     if n_bins % 2 == 0:
-        # Usually FFT of real signal has N/2 + 1 bins for rfft, or N bins for fft.
-        # If this is full FFT:
-        # Nyquist is at index N/2
         nyq_idx = n_bins // 2
-        # But wait, if it's full FFT, we check S[k] == S*[-k]
-
-        # Positive frequencies: 1 to N/2 - 1
-        # Negative frequencies: N-1 down to N/2 + 1
-
-        # Let's assume standard full FFT layout
-        # 0: DC
-        # 1 .. N/2-1: Pos
-        # N/2: Nyquist (if even)
-        # N/2+1 .. N-1: Neg
-
-        # Check Nyquist realness
         if not np.allclose(s[nyq_idx].imag, 0, atol=atol):
             warnings.warn("Symmetry Failed: Nyquist component is not real.")
             return False

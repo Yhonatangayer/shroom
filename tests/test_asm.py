@@ -122,10 +122,8 @@ def test_encode_amb(real_array_signal):
     assert encoded.is_sh
 
     L = (sh_order + 1) ** 2
-    # Output data shape: (L, 1, Time) or (L, Time) depending on implementation
-    # SpatialSignal data is (Channels, Grid, Time)
-    # Here Channels=L, Grid=1?
-
+    # SpatialSignal data is (Channels, Grid, Time); encoded Ambisonics has
+    # Channels = L SH coefficients and a singleton grid axis.
     # Check shape
     assert encoded.data.shape[:2] == (1, L)
     encodedf = np.fft.fft(encoded.data, axis=-1)

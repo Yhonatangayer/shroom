@@ -62,17 +62,14 @@ def mock_hrtf():
     data[0, 0, 0] = 1.0  # Left ear W
     data[1, 0, 0] = 1.0  # Right ear W
 
-    # Wrap in SpatialSignal (Channels=Ears, Grid=SH, Time)
-    # Wait, SpatialSignal usually expects (Channels, Grid, Time).
-    # If it's SH, 'Grid' dimension is SH coeffs?
-    # Yes, usually.
-
+    # SpatialSignal data is (Channels, Grid, Time); in the SH domain the middle axis
+    # holds the SH coefficients and no grid object is needed.
     return SpatialSignal(
         data=data,
         fs=fs,
         is_time=True,
         is_space=False,
-        grid=None,  # SH domain doesn't need grid object usually
+        grid=None,
     )
 
 

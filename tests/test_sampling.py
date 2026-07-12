@@ -81,9 +81,8 @@ def test_round_trip_partial_grid():
 
     N_sh = 3
 
-    # Create a synthetic signal on this grid
-    # Let's assume the signal is a simple Y_1,0 (dipole pointing up)
-    # This should be perfectly reconstructible as it's in the covered region.
+    # Synthetic signal: a simple Y_1,0 (dipole pointing up), which lies in the
+    # covered region and should therefore be perfectly reconstructible.
 
     # 1. Generate signal in Space
     Y_true = grid.Y(N_sh)
@@ -165,8 +164,7 @@ def test_regularization_accuracy_ill_conditioned():
     N_sh = 3  # Even low order is hard if we only see the North Pole
     Y = grid.Y(N_sh)
 
-    # Signal: A mode that is NOT well observed (e.g., Y_1,1 which is 0 at pole)
-    # Actually, let's use a random combination
+    # Signal: a random combination of SH modes.
     coeffs_true = np.random.randn(Y.shape[1])
     signal_clean = Y @ coeffs_true
 

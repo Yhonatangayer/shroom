@@ -656,7 +656,7 @@ class Room:
         fs = self.fs
         fdl2 = fdl // 2
 
-        # Assume all images are visible for now (ShoeBox)
+        # ShoeBox rooms have no occluders, so every image source is visible.
         is_visible = np.ones(src.images.shape[1], dtype=bool)
         images = src.images[:, is_visible]
         att = src.damping[:, is_visible]  # (n_bands, n_images)

@@ -86,7 +86,7 @@ def parse_sofa_data(sofa: sf.sofa.Sofa) -> np.ndarray:
     if dims == ("M", "R", "N") or dims == "MRN":
         return np.transpose(raw_data, (1, 0, 2))
     elif dims == ("R", "M", "N") or dims == "RMN":
-        return raw_data  # Already in your format
+        return raw_data  # Already in (R, M, N) order
     else:
         # Handle rare cases or throw an error
         raise ValueError(f"Unexpected SOFA dimensions: {dims}")

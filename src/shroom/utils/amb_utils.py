@@ -1,20 +1,18 @@
 import numpy as np
 try:
     from scipy.special import sph_harm_y
-except ImportError:
-    # Fallback for older SciPy versions where sph_harm exists but sph_harm_y does not
+except ImportError:  # pragma: no cover
+    # Older SciPy versions expose sph_harm instead of sph_harm_y, with a different
+    # argument order. Adapt it to the sph_harm_y(n, m, theta, phi) signature.
     try:
         from scipy.special import sph_harm
+
         def sph_harm_y(n, m, theta, phi):
-            """
-            Wrapper to make old sph_harm look like new sph_harm_y (hypothetically).
-            Old: sph_harm(m, n, phi, theta)  (m=order, n=degree, phi=azimuth, theta=colatitude)
-            New (assumed): sph_harm_y(n, m, theta, phi) (n=degree, m=order, theta=colatitude, phi=azimuth)
-            """
+            """Adapter for older SciPy: sph_harm_y(n, m, theta, phi) implemented via
+            sph_harm(m, n, phi, theta), where n=degree, m=order, theta=colatitude,
+            phi=azimuth."""
             return sph_harm(m, n, phi, theta)
     except ImportError:
-        # If neither exists (e.g. very new SciPy without sph_harm and we guessed wrong name),
-        # we are in trouble. But let's assume one exists.
         raise ImportError("Could not import sph_harm or sph_harm_y from scipy.special")
 
 
