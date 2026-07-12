@@ -173,6 +173,13 @@ If you use shroom in your research, please cite our paper:
 ```
 ## Changelog
 
+### 0.2.1
+
+Maintenance release — no functional or API changes. Adds the JOSS paper
+(`paper/`), continuous integration with coverage, contribution guidelines, and
+expanded tests; renames the research `projects/` scripts to `benchmarks/` and
+removes the unused `spaudiopy` submodule.
+
 ### 0.2.0
 
 Three coupled changes. The first two are tied together (the pyroomacoustics upgrade

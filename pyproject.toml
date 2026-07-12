@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyshroom"
-version = "0.2.0"
+version = "0.2.1"
 description = "Spherical Harmonics Room (shroom): a Python library for room acoustics simulation, Ambisonics processing, and spherical microphone array modelling."
 readme = "README.md"
 license = "MIT"
