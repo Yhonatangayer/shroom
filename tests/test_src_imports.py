@@ -1,6 +1,8 @@
 import os
 import ast
 import sys
+import sysconfig
+import importlib.util
 import pytest
 from pathlib import Path
 
@@ -9,14 +11,54 @@ REPO_ROOT = Path(__file__).parent.parent
 SRC_DIR = REPO_ROOT / "src"
 PYPROJECT_TOML = REPO_ROOT / "pyproject.toml"
 
-def get_stdlib_modules():
-    """Get a set of standard library module names."""
-    if sys.version_info >= (3, 10):
-        return sys.stdlib_module_names
-    else:
-        return set(sys.builtin_module_names)
+_STDLIB_PATHS = tuple(
+    p for p in {sysconfig.get_paths().get("stdlib"),
+                sysconfig.get_paths().get("platstdlib")} if p
+)
+# site-packages lives *under* the stdlib dir in a venv, so third-party packages
+# must be explicitly excluded from the stdlib-path check below.
+_SITE_PATHS = tuple(
+    p for p in {sysconfig.get_paths().get("purelib"),
+                sysconfig.get_paths().get("platlib")} if p
+)
 
-STDLIB_MODULES = get_stdlib_modules()
+
+def _is_under(path: str, roots) -> bool:
+    path = os.path.realpath(path)
+    for root in roots:
+        root = os.path.realpath(root)
+        if path == root or path.startswith(root + os.sep):
+            return True
+    return False
+
+
+def is_stdlib_module(name: str) -> bool:
+    """Return True if `name` is a standard-library or built-in module.
+
+    On Python >= 3.10 this uses ``sys.stdlib_module_names``. On older versions
+    ``sys.builtin_module_names`` only lists C built-ins and misses pure-Python
+    stdlib modules (e.g. ``pickle``), so we locate the module and check whether
+    it lives under the interpreter's stdlib path (but not site-packages).
+    """
+    if sys.version_info >= (3, 10):
+        return name in sys.stdlib_module_names
+    if name in sys.builtin_module_names:
+        return True
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError, ModuleNotFoundError, AttributeError):
+        return False
+    if spec is None:
+        return False
+    if spec.origin in ("built-in", "frozen"):
+        return True
+    origin = spec.origin
+    if origin is None:
+        locations = list(spec.submodule_search_locations or [])
+        origin = locations[0] if locations else None
+    if not origin:
+        return False
+    return _is_under(origin, _STDLIB_PATHS) and not _is_under(origin, _SITE_PATHS)
 
 def get_install_requires():
     """Parse dependencies from pyproject.toml, including optional-dependencies."""
@@ -86,8 +128,8 @@ def test_imports_vs_requirements():
                     if imp in {"shroom", "shroom_dev"} or imp.startswith("."):
                         continue
 
-                    # Skip stdlib
-                    if imp in STDLIB_MODULES:
+                    # Skip stdlib / built-in modules
+                    if is_stdlib_module(imp):
                         continue
 
                     # Skip known built-ins that might not be in stdlib list

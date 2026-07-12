@@ -37,7 +37,6 @@ data/
 /tests/anm_ref.npz
 
 # claude
-CLAUDE.md
 .claude
 
 # benchmark output figures
