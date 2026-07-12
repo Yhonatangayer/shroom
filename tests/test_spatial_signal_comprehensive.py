@@ -526,243 +526,243 @@ class TestSHSpaceDomain:
 # convolve_sh()
 # ═════════════════════════════════════════════════════════════════════════════
 
-# class TestConvolveSH:
-#
-#     def test_identity_impulse_at_t0(self):
-#         """Convolving with a unit impulse at t=0 on channel (0,0) yields that channel."""
-#         fs, n_sh, T = 48000, 4, 50
-#         data = np.random.randn(2, n_sh, T)
-#         sig = SpatialSignal(data, fs, is_time=True, is_space=False)
-#
-#         filt_data = np.zeros((1, n_sh, T))
-#         filt_data[0, 0, 0] = 1.0
-#         filt = SpatialSignal(filt_data, fs, is_time=True, is_space=False)
-#
-#         out = sig.convolve_sh(filt)
-#         # out[ch, 0, :T] is sum over SH channels — only ch 0 of sig contributes
-#         np.testing.assert_allclose(out[:, 0, :T], data[:, 0, :], atol=1e-10)
-#
-#     def test_delay_shifts_output(self):
-#         """Convolving an impulse signal with a delayed impulse shifts the peak."""
-#         fs, n_sh, T, delay = 48000, 4, 50, 5
-#         sig_data = np.zeros((1, n_sh, T))
-#         sig_data[0, 0, 0] = 1.0
-#         sig = SpatialSignal(sig_data, fs, is_time=True, is_space=False)
-#
-#         delayed_data = np.zeros((1, n_sh, T))
-#         delayed_data[0, 0, delay] = 1.0
-#         delayed = SpatialSignal(delayed_data, fs, is_time=True, is_space=False)
-#
-#         out = sig.convolve_sh(delayed)
-#         assert np.argmax(np.abs(out[0, 0])) == delay
-#
-#     @pytest.mark.parametrize("T1,T2", [(50, 30), (100, 100), (10, 200), (1, 50)])
-#     def test_output_length(self, T1, T2):
-#         fs, n_sh = 48000, 4
-#         s1 = SpatialSignal(np.random.randn(2, n_sh, T1), fs, is_time=True, is_space=False)
-#         s2 = SpatialSignal(np.random.randn(3, n_sh, T2), fs, is_time=True, is_space=False)
-#         out = s1.convolve_sh(s2)
-#         assert out.shape == (2, 3, T1 + T2 - 1)
-#
-#     @pytest.mark.parametrize("order1,order2,expected", [
-#         (3, 1, 1), (2, 2, 2), (4, 2, 2), (1, 3, 1),
-#     ])
-#     def test_sh_order_truncated_to_min(self, order1, order2, expected):
-#         fs, T = 48000, 30
-#         s1 = make_time_sh(1, order1, T, fs, seed=1)
-#         s2 = make_time_sh(1, order2, T, fs, seed=2)
-#         out = s1.convolve_sh(s2)
-#         # Only `expected`-order channels participated in the sum
-#         assert out.shape[2] == 2 * T - 1
-#
-#     def test_raises_for_space_domain_input(self):
-#         sig = make_time_space(1, 8, 64, 48000)
-#         filt = make_time_sh(1, 2, 64, 48000)
-#         with pytest.raises(ValueError):
-#             sig.convolve_sh(filt)
-#
-#     def test_works_when_signals_are_in_freq_domain(self):
-#         """convolve_sh converts to time internally — freq input must not crash."""
-#         fs, n_sh, T = 48000, 4, 50
-#         sig_data = np.zeros((1, n_sh, T))
-#         sig_data[0, 0, 0] = 1.0
-#         s1 = SpatialSignal(sig_data.copy(), fs, is_time=False, is_space=False)
-#         s2 = SpatialSignal(np.random.randn(2, n_sh, T), fs, is_time=False, is_space=False)
-#         out = s1.convolve_sh(s2)
-#         assert out.shape == (1, 2, 2 * T - 1)
-#
-#
-# # ═════════════════════════════════════════════════════════════════════════════
-# # rotate_space_domain()
-# # ═════════════════════════════════════════════════════════════════════════════
-#
-# class TestRotateSpaceDomain:
-#
-#     def test_identity_rotation_leaves_data_unchanged(self):
-#         sig = make_time_space(1, 8, 64, 48000, seed=10)
-#         original = sig.data.copy()
-#         sig.rotate_space_domain(Rotation.from_euler("z", 0, degrees=True))
-#         np.testing.assert_allclose(sig.data, original, atol=1e-12)
-#
-#     def test_identity_rotation_leaves_grid_unchanged(self):
-#         sig = make_time_space(1, 8, 64, 48000)
-#         original_az = sig.grid.az.copy()
-#         sig.rotate_space_domain(Rotation.from_euler("z", 0, degrees=True))
-#         np.testing.assert_allclose(sig.grid.az, original_az, atol=1e-10)
-#
-#     @pytest.mark.parametrize("angle_deg", [30, 45, 90, 120, 180, 270, 360])
-#     def test_z_rotation_shifts_all_azimuths(self, angle_deg):
-#         az = np.linspace(0, 2 * np.pi, 8, endpoint=False)
-#         grid = sphereicalGrid(az, np.full(8, np.pi / 2))
-#         sig = SpatialSignal(np.random.randn(1, 8, 32), 48000,
-#                             is_time=True, is_space=True, grid=grid)
-#         sig.rotate_space_domain(Rotation.from_euler("z", angle_deg, degrees=True))
-#         expected = np.mod(az + np.deg2rad(angle_deg), 2 * np.pi)
-#         np.testing.assert_allclose(
-#             np.exp(1j * sig.grid.az),
-#             np.exp(1j * expected),
-#             atol=1e-10,
-#         )
-#
-#     def test_rotation_does_not_change_data_values(self):
-#         """Rotating the grid must not alter the data array."""
-#         sig = make_time_space(1, 8, 64, 48000, seed=55)
-#         original_data = sig.data.copy()
-#         sig.rotate_space_domain(Rotation.from_euler("z", 90, degrees=True))
-#         np.testing.assert_array_equal(sig.data, original_data)
-#
-#     def test_forward_then_inverse_recovers_grid(self):
-#         sig = make_time_space(1, 8, 64, 48000)
-#         orig_az = sig.grid.az.copy()
-#         orig_co = sig.grid.co.copy()
-#         rot = Rotation.from_euler("zyx", [45, 20, 10], degrees=True)
-#         sig.rotate_space_domain(rot)
-#         sig.rotate_space_domain(rot.inv())
-#         np.testing.assert_allclose(sig.grid.az, orig_az, atol=1e-10)
-#         np.testing.assert_allclose(sig.grid.co, orig_co, atol=1e-10)
-#
-#     def test_colatitude_stays_in_valid_range(self):
-#         sig = make_time_space(1, 16, 64, 48000)
-#         for angle in [30, 60, 90, 120, 180]:
-#             sig.rotate_space_domain(Rotation.from_euler("y", angle, degrees=True))
-#         assert np.all(sig.grid.co >= 0) and np.all(sig.grid.co <= np.pi)
-#
-#     def test_raises_for_sh_domain_signal(self):
-#         sig = make_time_sh(1, 2, 64, 48000)
-#         with pytest.raises(ValueError):
-#             sig.rotate_space_domain(Rotation.from_euler("z", 45, degrees=True))
-#
-#
-# # ═════════════════════════════════════════════════════════════════════════════
-# # rotate_sh_domain()
-# # ═════════════════════════════════════════════════════════════════════════════
-#
-# class TestRotateSHDomain:
-#
-#     def test_identity_rotation_noop(self):
-#         sig = make_time_sh(2, 2, 64, 48000, seed=20)
-#         original = sig.data.copy()
-#         sig.rotate_sh_domain(Rotation.from_euler("z", 0, degrees=True))
-#         np.testing.assert_allclose(sig.data, original, atol=1e-12)
-#
-#     @pytest.mark.parametrize("sh_order", [1, 2, 3])
-#     def test_rotation_is_norm_preserving(self, sh_order):
-#         """Wigner-D rotation is unitary — the Frobenius norm must be preserved."""
-#         sig = make_time_sh(1, sh_order, 64, 48000, seed=7)
-#         norm_before = np.linalg.norm(sig.data)
-#         sig.rotate_sh_domain(Rotation.from_euler("zyx", [30, 15, 45], degrees=True))
-#         np.testing.assert_allclose(np.linalg.norm(sig.data), norm_before, rtol=1e-8)
-#
-#     @pytest.mark.parametrize("sh_order", [1, 2, 3])
-#     def test_forward_then_inverse_is_identity(self, sh_order):
-#         sig = make_time_sh(1, sh_order, 64, 48000, seed=8)
-#         original = sig.data.copy()
-#         rot = Rotation.from_euler("zyx", [40, 25, -15], degrees=True)
-#         sig.rotate_sh_domain(rot)
-#         sig.rotate_sh_domain(rot.inv())
-#         np.testing.assert_allclose(sig.data, original, atol=1e-10)
-#
-#     def test_rotation_works_in_freq_domain(self):
-#         sig = make_time_sh(1, 2, 64, 48000, seed=12)
-#         sig.toFreq()
-#         norm_before = np.linalg.norm(sig.data)
-#         sig.rotate_sh_domain(Rotation.from_euler("z", 90, degrees=True))
-#         np.testing.assert_allclose(np.linalg.norm(sig.data), norm_before, rtol=1e-8)
-#
-#     def test_raises_for_space_domain_signal(self):
-#         sig = make_time_space(1, 8, 64, 48000)
-#         with pytest.raises(ValueError):
-#             sig.rotate_sh_domain(Rotation.from_euler("z", 45, degrees=True))
-#
-#     @pytest.mark.parametrize("sh_order", [1, 2])
-#     def test_space_rotation_and_sh_rotation_are_consistent(self, sh_order):
-#         """
-#         Rotating in space domain then toSH must equal toSH then rotating in SH domain.
-#         (Fundamental property: Y(R Omega) = D^H Y(Omega) for Wigner-D matrix D.)
-#         """
-#         grid = from_fibonacci_grid(50)
-#         sig = make_sh_subspace_signal(1, sh_order, 32, 48000, grid, seed=99)
-#         rot = Rotation.from_euler("z", 45, degrees=True)
-#
-#         # Path A: rotate grid, then project to SH
-#         path_a = sig.copy()
-#         path_a.rotate_space_domain(rot)
-#         path_a.toSH(sh_order)
-#
-#         # Path B: project to SH, then rotate coefficients
-#         path_b = sig.copy()
-#         path_b.toSH(sh_order)
-#         path_b.rotate_sh_domain(rot)
-#
-#         np.testing.assert_allclose(path_a.data, path_b.data, atol=1e-4)
-#
-#     @pytest.mark.parametrize("angle_deg", [0, 45, 90, 180, 270])
-#     def test_360_degree_rotation_is_identity(self, angle_deg):
-#         """Cumulative 360° rotation (four 90° steps) must recover the original."""
-#         sig = make_time_sh(1, 2, 32, 48000, seed=3)
-#         original = sig.data.copy()
-#         rot = Rotation.from_euler("z", 90, degrees=True)
-#         for _ in range(4):
-#             sig.rotate_sh_domain(rot)
-#         np.testing.assert_allclose(sig.data, original, atol=1e-10)
-#
-#
-# # ═════════════════════════════════════════════════════════════════════════════
-# # Properties
-# # ═════════════════════════════════════════════════════════════════════════════
-#
-# class TestProperties:
-#
-#     @pytest.mark.parametrize("fs", FS_VALUES)
-#     @pytest.mark.parametrize("n_samp", [16, 128, 1000])
-#     def test_duration_equals_n_samples_over_fs(self, fs, n_samp):
-#         sig = make_time_space(1, 4, n_samp, fs)
-#         np.testing.assert_allclose(sig.duration, n_samp / fs)
-#
-#     def test_duration_is_none_in_freq_domain(self):
-#         sig = make_time_space(1, 4, 128, 48000)
-#         sig.toFreq()
-#         assert sig.duration is None
-#
-#     def test_n_samples_is_zero_in_freq_domain(self):
-#         sig = make_time_space(1, 4, 128, 48000)
-#         sig.toFreq()
-#         assert sig.n_samples == 0
-#
-#     @pytest.mark.parametrize("n_ch", [1, 2, 5, 8])
-#     def test_n_channels(self, n_ch):
-#         assert make_time_space(n_ch, 4, 64, 48000).n_channels == n_ch
-#
-#     @pytest.mark.parametrize("n_samp", [16, 128, 1000])
-#     def test_n_samples_after_zero_pad(self, n_samp):
-#         sig = make_time_space(1, 4, n_samp, 48000)
-#         sig.zero_pad(n_samp * 2)
-#         assert sig.n_samples == n_samp * 2
-#
-#     @RESAMPLE_PAIRS
-#     def test_n_samples_after_resample(self, fs_pair):
-#         fs_in, fs_out = fs_pair
-#         n = 128
-#         sig = make_time_space(1, 4, n, fs_in)
-#         sig.resample(fs_out)
-#         assert sig.n_samples == int(n * fs_out / fs_in)
+class TestConvolveSH:
+
+    def test_identity_impulse_at_t0(self):
+        """Convolving with a unit impulse at t=0 on channel (0,0) yields that channel."""
+        fs, n_sh, T = 48000, 4, 50
+        data = np.random.randn(2, n_sh, T)
+        sig = SpatialSignal(data, fs, is_time=True, is_space=False)
+
+        filt_data = np.zeros((1, n_sh, T))
+        filt_data[0, 0, 0] = 1.0
+        filt = SpatialSignal(filt_data, fs, is_time=True, is_space=False)
+
+        out = sig.convolve_sh(filt)
+        # out[ch, 0, :T] is sum over SH channels — only ch 0 of sig contributes
+        np.testing.assert_allclose(out[:, 0, :T], data[:, 0, :], atol=1e-10)
+
+    def test_delay_shifts_output(self):
+        """Convolving an impulse signal with a delayed impulse shifts the peak."""
+        fs, n_sh, T, delay = 48000, 4, 50, 5
+        sig_data = np.zeros((1, n_sh, T))
+        sig_data[0, 0, 0] = 1.0
+        sig = SpatialSignal(sig_data, fs, is_time=True, is_space=False)
+
+        delayed_data = np.zeros((1, n_sh, T))
+        delayed_data[0, 0, delay] = 1.0
+        delayed = SpatialSignal(delayed_data, fs, is_time=True, is_space=False)
+
+        out = sig.convolve_sh(delayed)
+        assert np.argmax(np.abs(out[0, 0])) == delay
+
+    @pytest.mark.parametrize("T1,T2", [(50, 30), (100, 100), (10, 200), (1, 50)])
+    def test_output_length(self, T1, T2):
+        fs, n_sh = 48000, 4
+        s1 = SpatialSignal(np.random.randn(2, n_sh, T1), fs, is_time=True, is_space=False)
+        s2 = SpatialSignal(np.random.randn(3, n_sh, T2), fs, is_time=True, is_space=False)
+        out = s1.convolve_sh(s2)
+        assert out.shape == (2, 3, T1 + T2 - 1)
+
+    @pytest.mark.parametrize("order1,order2,expected", [
+        (3, 1, 1), (2, 2, 2), (4, 2, 2), (1, 3, 1),
+    ])
+    def test_sh_order_truncated_to_min(self, order1, order2, expected):
+        fs, T = 48000, 30
+        s1 = make_time_sh(1, order1, T, fs, seed=1)
+        s2 = make_time_sh(1, order2, T, fs, seed=2)
+        out = s1.convolve_sh(s2)
+        # Only `expected`-order channels participated in the sum
+        assert out.shape[2] == 2 * T - 1
+
+    def test_raises_for_space_domain_input(self):
+        sig = make_time_space(1, 8, 64, 48000)
+        filt = make_time_sh(1, 2, 64, 48000)
+        with pytest.raises(ValueError):
+            sig.convolve_sh(filt)
+
+    def test_works_when_signals_are_in_freq_domain(self):
+        """convolve_sh converts to time internally — freq input must not crash."""
+        fs, n_sh, T = 48000, 4, 50
+        sig_data = np.zeros((1, n_sh, T))
+        sig_data[0, 0, 0] = 1.0
+        s1 = SpatialSignal(sig_data.copy(), fs, is_time=False, is_space=False)
+        s2 = SpatialSignal(np.random.randn(2, n_sh, T), fs, is_time=False, is_space=False)
+        out = s1.convolve_sh(s2)
+        assert out.shape == (1, 2, 2 * T - 1)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# rotate_space_domain()
+# ═════════════════════════════════════════════════════════════════════════════
+
+class TestRotateSpaceDomain:
+
+    def test_identity_rotation_leaves_data_unchanged(self):
+        sig = make_time_space(1, 8, 64, 48000, seed=10)
+        original = sig.data.copy()
+        sig.rotate_space_domain(Rotation.from_euler("z", 0, degrees=True))
+        np.testing.assert_allclose(sig.data, original, atol=1e-12)
+
+    def test_identity_rotation_leaves_grid_unchanged(self):
+        sig = make_time_space(1, 8, 64, 48000)
+        original_az = sig.grid.az.copy()
+        sig.rotate_space_domain(Rotation.from_euler("z", 0, degrees=True))
+        np.testing.assert_allclose(sig.grid.az, original_az, atol=1e-10)
+
+    @pytest.mark.parametrize("angle_deg", [30, 45, 90, 120, 180, 270, 360])
+    def test_z_rotation_shifts_all_azimuths(self, angle_deg):
+        az = np.linspace(0, 2 * np.pi, 8, endpoint=False)
+        grid = sphereicalGrid(az, np.full(8, np.pi / 2))
+        sig = SpatialSignal(np.random.randn(1, 8, 32), 48000,
+                            is_time=True, is_space=True, grid=grid)
+        sig.rotate_space_domain(Rotation.from_euler("z", angle_deg, degrees=True))
+        expected = np.mod(az + np.deg2rad(angle_deg), 2 * np.pi)
+        np.testing.assert_allclose(
+            np.exp(1j * sig.grid.az),
+            np.exp(1j * expected),
+            atol=1e-10,
+        )
+
+    def test_rotation_does_not_change_data_values(self):
+        """Rotating the grid must not alter the data array."""
+        sig = make_time_space(1, 8, 64, 48000, seed=55)
+        original_data = sig.data.copy()
+        sig.rotate_space_domain(Rotation.from_euler("z", 90, degrees=True))
+        np.testing.assert_array_equal(sig.data, original_data)
+
+    def test_forward_then_inverse_recovers_grid(self):
+        sig = make_time_space(1, 8, 64, 48000)
+        orig_az = sig.grid.az.copy()
+        orig_co = sig.grid.co.copy()
+        rot = Rotation.from_euler("zyx", [45, 20, 10], degrees=True)
+        sig.rotate_space_domain(rot)
+        sig.rotate_space_domain(rot.inv())
+        np.testing.assert_allclose(sig.grid.az, orig_az, atol=1e-10)
+        np.testing.assert_allclose(sig.grid.co, orig_co, atol=1e-10)
+
+    def test_colatitude_stays_in_valid_range(self):
+        sig = make_time_space(1, 16, 64, 48000)
+        for angle in [30, 60, 90, 120, 180]:
+            sig.rotate_space_domain(Rotation.from_euler("y", angle, degrees=True))
+        assert np.all(sig.grid.co >= 0) and np.all(sig.grid.co <= np.pi)
+
+    def test_raises_for_sh_domain_signal(self):
+        sig = make_time_sh(1, 2, 64, 48000)
+        with pytest.raises(ValueError):
+            sig.rotate_space_domain(Rotation.from_euler("z", 45, degrees=True))
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# rotate_sh_domain()
+# ═════════════════════════════════════════════════════════════════════════════
+
+class TestRotateSHDomain:
+
+    def test_identity_rotation_noop(self):
+        sig = make_time_sh(2, 2, 64, 48000, seed=20)
+        original = sig.data.copy()
+        sig.rotate_sh_domain(Rotation.from_euler("z", 0, degrees=True))
+        np.testing.assert_allclose(sig.data, original, atol=1e-12)
+
+    @pytest.mark.parametrize("sh_order", [1, 2, 3])
+    def test_rotation_is_norm_preserving(self, sh_order):
+        """Wigner-D rotation is unitary — the Frobenius norm must be preserved."""
+        sig = make_time_sh(1, sh_order, 64, 48000, seed=7)
+        norm_before = np.linalg.norm(sig.data)
+        sig.rotate_sh_domain(Rotation.from_euler("zyx", [30, 15, 45], degrees=True))
+        np.testing.assert_allclose(np.linalg.norm(sig.data), norm_before, rtol=1e-8)
+
+    @pytest.mark.parametrize("sh_order", [1, 2, 3])
+    def test_forward_then_inverse_is_identity(self, sh_order):
+        sig = make_time_sh(1, sh_order, 64, 48000, seed=8)
+        original = sig.data.copy()
+        rot = Rotation.from_euler("zyx", [40, 25, -15], degrees=True)
+        sig.rotate_sh_domain(rot)
+        sig.rotate_sh_domain(rot.inv())
+        np.testing.assert_allclose(sig.data, original, atol=1e-10)
+
+    def test_rotation_works_in_freq_domain(self):
+        sig = make_time_sh(1, 2, 64, 48000, seed=12)
+        sig.toFreq()
+        norm_before = np.linalg.norm(sig.data)
+        sig.rotate_sh_domain(Rotation.from_euler("z", 90, degrees=True))
+        np.testing.assert_allclose(np.linalg.norm(sig.data), norm_before, rtol=1e-8)
+
+    def test_raises_for_space_domain_signal(self):
+        sig = make_time_space(1, 8, 64, 48000)
+        with pytest.raises(ValueError):
+            sig.rotate_sh_domain(Rotation.from_euler("z", 45, degrees=True))
+
+    @pytest.mark.parametrize("sh_order", [1, 2])
+    def test_space_rotation_and_sh_rotation_are_consistent(self, sh_order):
+        """
+        Rotating in space domain then toSH must equal toSH then rotating in SH domain.
+        (Fundamental property: Y(R Omega) = D^H Y(Omega) for Wigner-D matrix D.)
+        """
+        grid = from_fibonacci_grid(50)
+        sig = make_sh_subspace_signal(1, sh_order, 32, 48000, grid, seed=99)
+        rot = Rotation.from_euler("z", 45, degrees=True)
+
+        # Path A: rotate grid, then project to SH
+        path_a = sig.copy()
+        path_a.rotate_space_domain(rot)
+        path_a.toSH(sh_order)
+
+        # Path B: project to SH, then rotate coefficients
+        path_b = sig.copy()
+        path_b.toSH(sh_order)
+        path_b.rotate_sh_domain(rot)
+
+        np.testing.assert_allclose(path_a.data, path_b.data, atol=1e-4)
+
+    @pytest.mark.parametrize("angle_deg", [0, 45, 90, 180, 270])
+    def test_360_degree_rotation_is_identity(self, angle_deg):
+        """Cumulative 360° rotation (four 90° steps) must recover the original."""
+        sig = make_time_sh(1, 2, 32, 48000, seed=3)
+        original = sig.data.copy()
+        rot = Rotation.from_euler("z", 90, degrees=True)
+        for _ in range(4):
+            sig.rotate_sh_domain(rot)
+        np.testing.assert_allclose(sig.data, original, atol=1e-10)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Properties
+# ═════════════════════════════════════════════════════════════════════════════
+
+class TestProperties:
+
+    @pytest.mark.parametrize("fs", FS_VALUES)
+    @pytest.mark.parametrize("n_samp", [16, 128, 1000])
+    def test_duration_equals_n_samples_over_fs(self, fs, n_samp):
+        sig = make_time_space(1, 4, n_samp, fs)
+        np.testing.assert_allclose(sig.duration, n_samp / fs)
+
+    def test_duration_is_none_in_freq_domain(self):
+        sig = make_time_space(1, 4, 128, 48000)
+        sig.toFreq()
+        assert sig.duration is None
+
+    def test_n_samples_is_zero_in_freq_domain(self):
+        sig = make_time_space(1, 4, 128, 48000)
+        sig.toFreq()
+        assert sig.n_samples == 0
+
+    @pytest.mark.parametrize("n_ch", [1, 2, 5, 8])
+    def test_n_channels(self, n_ch):
+        assert make_time_space(n_ch, 4, 64, 48000).n_channels == n_ch
+
+    @pytest.mark.parametrize("n_samp", [16, 128, 1000])
+    def test_n_samples_after_zero_pad(self, n_samp):
+        sig = make_time_space(1, 4, n_samp, 48000)
+        sig.zero_pad(n_samp * 2)
+        assert sig.n_samples == n_samp * 2
+
+    @RESAMPLE_PAIRS
+    def test_n_samples_after_resample(self, fs_pair):
+        fs_in, fs_out = fs_pair
+        n = 128
+        sig = make_time_space(1, 4, n, fs_in)
+        sig.resample(fs_out)
+        assert sig.n_samples == int(n * fs_out / fs_in)

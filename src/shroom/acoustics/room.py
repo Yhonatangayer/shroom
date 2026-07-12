@@ -29,6 +29,16 @@ from shroom.utils.dsp_utils import convolve_multichannel
 
 
 class Room:
+    """A shoebox room simulated in the spherical-harmonics (Ambisonics) domain.
+
+    Wraps the ``pyroomacoustics`` image-source model for reflection geometry and projects
+    the resulting image sources onto a spherical-harmonics basis, producing an Ambisonic
+    Room Impulse Response (ARIR). Add sources with :meth:`add_source`, set the listener
+    with :meth:`set_receiver`, then call :meth:`compute_arir` (per-source ARIRs) or
+    :meth:`compute_amb` (mixed Ambisonics signal). See the constructor for the full list
+    of room, absorption, and simulation parameters.
+    """
+
     def __init__(
         self,
         dimensions: Union[List[float], np.ndarray],
@@ -646,7 +656,7 @@ class Room:
         fs = self.fs
         fdl2 = fdl // 2
 
-        # Assume all images are visible for now (ShoeBox)
+        # ShoeBox rooms have no occluders, so every image source is visible.
         is_visible = np.ones(src.images.shape[1], dtype=bool)
         images = src.images[:, is_visible]
         att = src.damping[:, is_visible]  # (n_bands, n_images)

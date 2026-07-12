@@ -1,9 +1,5 @@
 import pytest
 import numpy as np
-from shroom.acoustics.spherical_array import SphericalArray
-from shroom.geometry.sampling import sphereicalGrid
-from shroom.utils.grid_utils import from_fibonacci_grid
-# from spaudiopy.grids import load_lebedev
 from shroom.utils.dsp_utils import (
     is_signal_frequency_sh_valid,
     is_signal_frequency_symmetric,
@@ -12,29 +8,14 @@ from shroom.utils.dsp_utils import (
 
 
 @pytest.fixture
-def basic_array():
-    """Fixture for a basic spherical array."""
-    fs = 48000
-    radius = 0.1
-    n_mics = 6
-
-    # Use co=0 (North Pole) to match legacy/standard conventions if needed,
-    # or pi/2 (Equator). Let's use Equator as it's more common for simple rings.
-    mics_grid = sphereicalGrid(
-        az=np.linspace(0, 2 * np.pi, n_mics, endpoint=False),
-        co=np.full(n_mics, np.pi / 2),
-    )
-
-    source_grid = from_fibonacci_grid(974)
-
-    return SphericalArray(
-        fs=fs,
+def basic_array(make_spherical_array):
+    """A basic rigid spherical array (equator mics, Fibonacci sources)."""
+    return make_spherical_array(
+        n_mics=6,
+        radius=0.1,
+        fs=48000,
         duration=0.01,
-        r_sphere=radius,
-        r_mics=np.full(n_mics, radius),
-        source_grid=source_grid,
-        mics_grid=mics_grid,
-        sphere_type="rigid",
+        source_points=974,
         sh_order_for_sm_calc=14,
         convert_to_time=False,
     )

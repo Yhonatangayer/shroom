@@ -2,6 +2,12 @@
 =====================
 Integration tests for ASM and BSM encoders using the real ARIA array ATFs.
 
+These tests require the ARIA array SOFA file, which is **not** distributed with the
+repository. When the file is absent (e.g. on a fresh clone or in CI) the whole module
+is skipped. Array-agnostic properties of the ASM/BSM encoders and processors are covered
+independently by ``test_asm.py``, ``test_bsm.py``, and ``test_processors.py`` using
+synthetic arrays, so they still run without this file.
+
 Validates:
 - ARIA array loading, shape, finiteness
 - Frequency-domain Hermitian symmetry
@@ -14,14 +20,11 @@ Validates:
 """
 
 import os
-import sys
 
 import numpy as np
 import pytest
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(REPO_ROOT, "src"))
-sys.path.insert(0, os.path.join(REPO_ROOT, "projects"))
 
 from shroom.utils.sofa import load_sofa
 from shroom.utils.file_utils import load_file
@@ -38,6 +41,14 @@ ARIA_PATH = os.path.join(REPO_ROOT, "data", "sofa_arrays", "aria_atfs_fixed.sofa
 SH_ORDER = 1
 MAGLS_CUTOFF = 1200.0
 SM_SH_ORDER = 20
+
+# The ARIA SOFA file is not distributed with the repository. Skip the whole module
+# (rather than erroring in fixtures) when it is unavailable, e.g. on a fresh clone / CI.
+pytestmark = pytest.mark.skipif(
+    not os.path.exists(ARIA_PATH),
+    reason=f"ARIA array SOFA file not available at {ARIA_PATH}; "
+    "skipping real-array ASM/BSM integration tests.",
+)
 
 
 @pytest.fixture(scope="module")

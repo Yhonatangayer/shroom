@@ -261,13 +261,13 @@ class ArrayDecoder(AbstractProcessor):
     Output: Microphone Signals.
     """
 
-    def __init__(self, array: SphericalArray, sh_order: int = None):
+    def __init__(self, array: SpatialSignal, sh_order: int = None):
         """
         Initialize ArrayDecoder.
 
         Parameters
         ----------
-        array : SphericalArray
+        array : SpatialSignal
             The array object defining the microphone positions and physics.
         sh_order : int, optional
             SH order to use for simulation.

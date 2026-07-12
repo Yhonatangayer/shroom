@@ -157,7 +157,6 @@ def tikhonov(
         condition_number = sigma_max / sigma_min
 
         lam = max(1e-7 * condition_number, 1e-12)
-        # lam = min(lam, 1e-2 * sigma_max)  # cap: never over-regularize beyond 1% of signal scale
 
 
     # 2. Setup Regularization Matrix L

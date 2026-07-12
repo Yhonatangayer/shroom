@@ -37,5 +37,13 @@ data/
 /tests/anm_ref.npz
 
 # claude
-CLAUDE.md
 .claude
+
+# benchmark output figures
+benchmarks/figures/
+
+# coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/

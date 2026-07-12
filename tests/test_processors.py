@@ -7,11 +7,7 @@ from shroom.acoustics.processors import (
     BinauralDecoder,
 )
 from shroom.acoustics.spatial_signal import SpatialSignal
-from shroom.acoustics.spherical_array import SphericalArray
 from shroom.encoders.asm import ASM
-from shroom.geometry.sampling import sphereicalGrid
-from shroom.utils.grid_utils import from_spaudiopy_grid, from_fibonacci_grid
-# from spaudiopy.grids import load_lebedev
 
 
 @pytest.fixture
@@ -32,26 +28,15 @@ def mock_amb_signal():
 
 
 @pytest.fixture
-def array_setup():
+def array_setup(make_spherical_array):
     """Create array and ASM instance."""
     fs = 16000
-    radius = 0.1
-    n_mics = 6
-
-    mics_grid = sphereicalGrid(
-        az=np.linspace(0, 2 * np.pi, n_mics, endpoint=False),
-        co=np.full(n_mics, np.pi / 2),
-    )
-    source_grid = from_fibonacci_grid(50)
-
-    array = SphericalArray(
+    array = make_spherical_array(
+        n_mics=6,
+        radius=0.1,
         fs=fs,
         duration=0.01,
-        r_sphere=radius,
-        r_mics=np.full(n_mics, radius),
-        source_grid=source_grid,
-        mics_grid=mics_grid,
-        sphere_type="rigid",
+        source_points=50,
         sh_order_for_sm_calc=1,
         convert_to_time=False,
     )
@@ -77,17 +62,14 @@ def mock_hrtf():
     data[0, 0, 0] = 1.0  # Left ear W
     data[1, 0, 0] = 1.0  # Right ear W
 
-    # Wrap in SpatialSignal (Channels=Ears, Grid=SH, Time)
-    # Wait, SpatialSignal usually expects (Channels, Grid, Time).
-    # If it's SH, 'Grid' dimension is SH coeffs?
-    # Yes, usually.
-
+    # SpatialSignal data is (Channels, Grid, Time); in the SH domain the middle axis
+    # holds the SH coefficients and no grid object is needed.
     return SpatialSignal(
         data=data,
         fs=fs,
         is_time=True,
         is_space=False,
-        grid=None,  # SH domain doesn't need grid object usually
+        grid=None,
     )
 
 

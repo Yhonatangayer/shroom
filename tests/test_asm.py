@@ -1,37 +1,19 @@
 import pytest
 import numpy as np
 from shroom.encoders.asm import ASM, calculate_asm_coefficients
-from shroom.acoustics.spherical_array import SphericalArray
-from shroom.geometry.sampling import sphereicalGrid
-from shroom.utils.grid_utils import from_fibonacci_grid
 from shroom.acoustics.spatial_signal import SpatialSignal
 from shroom.utils.dsp_utils import is_signal_frequency_sh_valid
 
 
 @pytest.fixture
-def real_array_signal():
+def real_array_signal(make_spherical_array):
     """Create a real SphericalArray signal in frequency domain."""
-    fs = 16000
-    radius = 0.1
-    n_mics = 6
-
-    # Mics on equator
-    mics_grid = sphereicalGrid(
-        az=np.linspace(0, 2 * np.pi, n_mics, endpoint=False),
-        co=np.full(n_mics, np.pi / 2),
-    )
-
-    # Source grid (Lebedev)
-    source_grid = from_fibonacci_grid(50)  # 50 points
-
-    array = SphericalArray(
-        fs=fs,
+    array = make_spherical_array(
+        n_mics=6,
+        radius=0.1,
+        fs=16000,
         duration=0.01,
-        r_sphere=radius,
-        r_mics=np.full(n_mics, radius),
-        source_grid=source_grid,
-        mics_grid=mics_grid,
-        sphere_type="rigid",
+        source_points=50,
         sh_order_for_sm_calc=3,
         convert_to_time=True,
     )
@@ -89,6 +71,31 @@ def test_asm_class(real_array_signal):
 
     assert cnm_signal.data.shape == (M, L, F)
 
+def test_asm_dc_constraint(real_array_signal):
+    """ASM DC bin: higher-order channels are zero, omnidirectional is real.
+
+    Array-agnostic property of the ASM encoder (also checked against the real ARIA
+    array in test_aria_asm_bsm.py, which is skipped when that data file is absent).
+    """
+    sh_order = 1
+    asm = ASM(sh_order=sh_order, array=real_array_signal, fs=real_array_signal.fs, duration=0.1)
+    cnm = asm.calculate().data  # (M, nm, F)
+    assert np.allclose(cnm[:, 1:, 0], 0.0), "ASM DC: higher-order channels are not zero."
+    assert np.allclose(cnm[:, 0, 0].imag, 0.0), "ASM DC: (0,0) channel is not real."
+
+
+def test_asm_nyquist_constraint(real_array_signal):
+    """ASM Nyquist bin: higher-order channels are zero, omnidirectional is real."""
+    sh_order = 1
+    asm = ASM(sh_order=sh_order, array=real_array_signal, fs=real_array_signal.fs, duration=0.1)
+    cnm = asm.calculate().data  # (M, nm, F)
+    F = cnm.shape[-1]
+    if F % 2 == 0:
+        nyq = F // 2
+        assert np.allclose(cnm[:, 1:, nyq], 0.0), "ASM Nyquist: higher-order channels are not zero."
+        assert np.allclose(cnm[:, 0, nyq].imag, 0.0), "ASM Nyquist: (0,0) channel is not real."
+
+
 def test_encode_amb(real_array_signal):
     """Test encoding microphone signals to Ambisonics."""
     sh_order = 1
@@ -115,10 +122,8 @@ def test_encode_amb(real_array_signal):
     assert encoded.is_sh
 
     L = (sh_order + 1) ** 2
-    # Output data shape: (L, 1, Time) or (L, Time) depending on implementation
-    # SpatialSignal data is (Channels, Grid, Time)
-    # Here Channels=L, Grid=1?
-
+    # SpatialSignal data is (Channels, Grid, Time); encoded Ambisonics has
+    # Channels = L SH coefficients and a singleton grid axis.
     # Check shape
     assert encoded.data.shape[:2] == (1, L)
     encodedf = np.fft.fft(encoded.data, axis=-1)

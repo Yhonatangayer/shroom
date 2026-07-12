@@ -2,6 +2,9 @@
 
 **Spherical Harmonics Room**
 
+[![CI](https://github.com/Yhonatangayer/shroom/actions/workflows/ci.yml/badge.svg)](https://github.com/Yhonatangayer/shroom/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A Python library for simulating room acoustics using Spherical Harmonics (Ambisonics). It provides tools for simulating room impulse responses (ARIR), microphone arrays, and binaural rendering.
 
 ## Features
@@ -27,17 +30,20 @@ pip install pyshroom
 
 Installs `shroom` and its runtime dependencies (numpy, scipy, matplotlib, pyroomacoustics, sofar). This is all you need to simulate rooms, encode Ambisonics, and render binaural audio from your own scripts.
 
-### 2. With `shroom_dev` — extras for examples and projects
+### 2. With `shroom_dev` — extras for examples and benchmarks
 
 ```bash
 pip install "pyshroom[dev]"
 ```
 
-Installs everything above **plus** the companion package **`shroom_dev`**, which bundles helper modules used by the examples, tests, and research projects in this repo:
+`shroom` is the library; **`shroom_dev` is an optional companion package** (installed via the
+`[dev]` extra) holding evaluation metrics, plotting, and audio-playback helpers used by the
+examples, tests, and benchmarks. **It is not required to use the core `shroom` library** —
+only to run the examples/benchmarks in this repository. It bundles:
 
 - `shroom_dev.plot` — `loglog_plot` for error curves with variance bands.
 - `shroom_dev.sound` — `play_audio` helper around `sounddevice`.
-- `shroom_dev.errors` — the ASM/BSM evaluation metrics used by the `projects/` scripts (`asm_mse_error`, `asm_bin_mse_error`, `asm_bin_magnitude_mse_error`, `linear_spectral_error`, `bsm_mse_error`, `bsm_mag_mse_error`).
+- `shroom_dev.errors` — the ASM/BSM evaluation metrics used by the `benchmarks/` scripts (`asm_mse_error`, `asm_bin_mse_error`, `asm_bin_magnitude_mse_error`, `linear_spectral_error`, `bsm_mse_error`, `bsm_mag_mse_error`).
 - `shroom_dev.file_utils` — extra file loaders.
 
 The `[dev]` extra also pulls in `pytest`, `black`, `sounddevice`, and `pyyaml`.
@@ -52,7 +58,7 @@ cd shroom
 pip install -e ".[dev]"
 ```
 
-You can then run the example scripts under `examples/` and the research scripts under `projects/` directly — they import from `shroom` and `shroom_dev`.
+You can then run the example scripts under `examples/` and the validation scripts under `benchmarks/` directly — they import from `shroom` and `shroom_dev`.
 
 ## _Quick Start_
 
@@ -60,7 +66,7 @@ You can then run the example scripts under `examples/` and the research scripts 
 
 ```python
 import numpy as np
-from shroom.acoustics.room import Room
+from shroom import Room
 from shroom.paths import DEFAULT_WAV_PATH
 
 # 1. Initialize Room
@@ -87,9 +93,7 @@ room.plot(plot_3d=True)
 ```python
 import numpy as np
 from scipy.spatial.transform import Rotation
-from shroom.acoustics.room import Room
-from shroom.acoustics.processors import BinauralDecoder
-from shroom.utils.file_utils import load_file
+from shroom import Room, BinauralDecoder, load_file
 from shroom.paths import DEFAULT_HRTF_PATH, DEFAULT_WAV_PATH
 
 # 1. Initialize Room & Compute Ambisonics (Reference Frame)
@@ -115,8 +119,7 @@ binaural = decoder.process(amb_ref)
 ### Complete ASM Processing Chain
 
 ```python
-from shroom.acoustics.processors import ProcessorChain, ArrayDecoder, ASMEncoder, BinauralDecoder
-from shroom.encoders.asm import ASM
+from shroom import ProcessorChain, ArrayDecoder, ASMEncoder, BinauralDecoder, ASM
 
 # 1. Setup Signal Chain: Room -> Array -> ASM Encoder -> Binaural Decoder
 # Note: array_time_sh and asm_instance must be pre-configured
@@ -133,8 +136,7 @@ binaural_output = chain.process(room.compute_amb())
 ### Optimized Low-Order Rendering (MagLS)
 
 ```python
-from shroom.acoustics.hrtf_processing import magls_hrtf
-from shroom.acoustics.processors import BinauralDecoder
+from shroom import magls_hrtf, BinauralDecoder
 
 # 1. Compute MagLS-optimized HRTF (Mitigates spectral artifacts at low SH orders)
 hrtf_magls = magls_hrtf(original_hrtf, sh_order=1)
@@ -170,6 +172,13 @@ If you use shroom in your research, please cite our paper:
 }
 ```
 ## Changelog
+
+### 0.2.1
+
+Maintenance release — no functional or API changes. Adds the JOSS paper
+(`paper/`), continuous integration with coverage, contribution guidelines, and
+expanded tests; renames the research `projects/` scripts to `benchmarks/` and
+removes the unused `spaudiopy` submodule.
 
 ### 0.2.0
 
@@ -207,6 +216,15 @@ numerically-insignificant coefficients without any order/frequency gate. The ste
 matrix — and therefore ASM and AA-MagLS encoder filters — differ from shroom < 0.2.0;
 the change removes the ghost image and moves the simulated array closer to true sphere
 physics. No API changes.
+
+## Contributing & Support
+
+Contributions, bug reports, and questions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for development setup and guidelines. To report a bug, request a feature, or ask a question,
+open an issue at <https://github.com/Yhonatangayer/shroom/issues>.
+
+The `benchmarks/` directory contains validation scripts that reproduce the encoder-convergence
+figures from the paper; see [benchmarks/README.md](benchmarks/README.md).
 
 ## License
 
