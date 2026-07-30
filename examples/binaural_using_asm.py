@@ -26,6 +26,7 @@ MAX_ISM_ORDER = 10
 HEAD_POS = [2.0, 2.0, 1.5]
 SOURCE_POS = [4.0, 4.0, 1.5]
 HEAD_ROTATION = [0, 0, 0]
+SPECTRALY_EQUALIZATION = True
 
 
 def main():
@@ -65,7 +66,7 @@ def main():
     array_time_sh.toSH(1)
 
     # 3. Setup ASM
-    asm = ASM(sh_order=1, array=array, fs=FS, duration=DURATION)
+    asm = ASM(sh_order=1, array=array, fs=FS, duration=DURATION, spectrally_equalized=SPECTRALY_EQUALIZATION)
 
     # 4. Setup HRTF
     print("Loading HRTF...")
