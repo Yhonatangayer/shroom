@@ -13,7 +13,7 @@ A Python library for simulating room acoustics using Spherical Harmonics (Ambiso
 *   **Spatial Signals**: Unified handling of Time, Frequency, Space, and Spherical Harmonics (SH) domains.
 *   **Processors**: Modular processing chain including:
     *   `ArrayDecoder`: Simulates spherical microphone arrays.
-    *   `ASMEncoder`: Encodes microphone signals to Ambisonics (ASM).
+    *   `ASMEncoder`: Encodes microphone signals to Ambisonics (ASM, optionally spectrally-equalized — SE-ASM).
     *   `BinauralDecoder`: Decodes Ambisonics to Binaural audio using HRTFs.
 *   **Rotation**: Efficient rotation of sound fields and HRTFs using Wigner-D matrices, or via space domain grid rotation.
 *   **Visualization**: 2D and 3D plotting of room geometry, sources, and receiver orientation.
@@ -133,6 +133,17 @@ chain = ProcessorChain([
 binaural_output = chain.process(room.compute_amb())
 ```
 
+### Spectrally-Equalized ASM (SE-ASM)
+
+```python
+from shroom import ASM
+
+# Rescales each SH channel so its linear spectral magnitude stays at 0 dB across
+# the band, instead of collapsing above the array's spatial-aliasing frequency.
+se_asm = ASM(sh_order=1, array=array, fs=fs, duration=duration, spectrally_equalized=True)
+cnm = se_asm.cnm  # (M, (N+1)^2, F)
+```
+
 ### Optimized Low-Order Rendering (MagLS)
 
 ```python
@@ -172,6 +183,26 @@ If you use shroom in your research, please cite our paper:
 }
 ```
 ## Changelog
+
+### 0.2.2
+
+**New: spectrally-equalized ASM (SE-ASM).** `ASM` gained a `spectrally_equalized`
+flag (default `False`, so existing code is unchanged). When enabled, each SH channel
+of the ASM solution is rescaled by `1 / xi[nm, f]`, where
+`xi[nm, f] = ‖cnm[:, nm, f]^H V[:, :, f]‖ / ‖Y[:, nm]‖` is its linear spectral
+magnitude. This keeps every channel at 0 dB across the whole band instead of letting
+it collapse above the array's spatial-aliasing frequency, at the cost of a larger
+complex MSE. The weights are real and positive, so the phase of the ASM filters is
+untouched.
+
+```python
+ASM(sh_order=1, array=array, fs=fs, duration=duration, spectrally_equalized=True)
+```
+
+Also added: `calculate_se_asm_coefficients` and `linear_spectral_magnitude` in
+`shroom.encoders.asm`, and the `benchmarks/se_asm_convergence.py` benchmark comparing
+ASM and SE-ASM (per-channel MSE/LSE and binaural magnitude error). No API changes to
+existing functions.
 
 ### 0.2.1
 

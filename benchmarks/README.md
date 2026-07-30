@@ -7,6 +7,7 @@ error decays, validating the accuracy of the encoders against high-order referen
 | Script | What it validates |
 |--------|-------------------|
 | `asm_convergence.py` | Ambisonics Signal Matching (ASM) encoder error vs. SH order. |
+| `se_asm_convergence.py` | Spectrally-equalized ASM (SE-ASM) vs. plain ASM: per-channel MSE/LSE and binaural magnitude error. |
 | `bsm_convergence.py` | Binaural Signal Matching (BSM) encoder error vs. SH order (against a MATLAB reference). |
 | `aa_magls_convergence.py` | Array-aware MagLS binaural magnitude error vs. SH order. |
 
@@ -27,6 +28,7 @@ benchmarks and the examples.
 
 ```bash
 python benchmarks/asm_convergence.py
+python benchmarks/se_asm_convergence.py
 python benchmarks/bsm_convergence.py
 python benchmarks/aa_magls_convergence.py
 ```

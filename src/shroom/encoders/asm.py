@@ -3,6 +3,8 @@ from shroom.utils.math_utils import tikhonov
 import numpy as np
 from shroom.utils.dsp_utils import convolve_and_sum
 
+_EPS = 1e-12
+
 
 def calculate_asm_coefficients(
     sm: np.ndarray, Y: np.ndarray
@@ -50,10 +52,84 @@ def calculate_asm_coefficients(
     return C.transpose(1, 0, 2)
 
 
+def linear_spectral_magnitude(
+    cnm: np.ndarray, sm: np.ndarray, Y: np.ndarray
+) -> np.ndarray:
+    """
+    Per-(SH-channel, frequency) linear spectral magnitude of an ASM solution:
+
+        xi[nm, f] = ‖cnm[:, nm, f]^H V[:, :, f]‖_2 / ‖Y[:, nm]‖_2
+
+    This is the (unsquared) Linear Spectral Error used as the SE-ASM
+    equalization target: xi = 1 means the encoded SH channel carries the same
+    spectral energy as the ideal SH pattern.
+
+    Parameters
+    ----------
+    cnm : np.ndarray
+        Encoder coefficients with shape [M, (N_sh+1)**2, F].
+    sm : np.ndarray
+        Steering matrix (V) with shape [M, Q, F].
+    Y : np.ndarray
+        Spherical harmonic matrix with shape [Q, (N_sh+1)**2].
+
+    Returns
+    -------
+    np.ndarray
+        Linear spectral magnitude with shape [(N_sh+1)**2, F], real-valued.
+    """
+    proj = np.einsum("mlf,mqf->lqf", cnm.conj(), sm)  # (L, Q, F)
+    y_norm = np.maximum(np.linalg.norm(Y, axis=0), _EPS)  # (L,)
+    return np.linalg.norm(proj, axis=1) / y_norm[:, np.newaxis]
+
+
+def calculate_se_asm_coefficients(sm: np.ndarray, Y: np.ndarray) -> np.ndarray:
+    """
+    Calculate spectrally-equalized ASM (SE-ASM) coefficients.
+
+    SE-ASM rescales the plain ASM (Tikhonov) solution by a real, per-(SH
+    channel, frequency) weight derived from the Linear Spectral Error of the
+    unweighted solution:
+
+        w[nm, f] = 1 / xi[nm, f],
+        xi[nm, f] = ‖cnm[:, nm, f]^H V[:, :, f]‖_2 / ‖Y[:, nm]‖_2
+
+    The weight restores unit spectral magnitude in SH channels that plain ASM
+    attenuates at high frequencies (where the array is spatially aliased and
+    the regularized solution collapses towards zero), at the cost of a larger
+    complex MSE. The equalization is applied over the whole spectrum. Because
+    the weights are real and positive, they leave the phase of the ASM filters
+    — and hence the SH-domain symmetry of the encoded signal — untouched.
+
+    Parameters
+    ----------
+    sm : np.ndarray
+        Steering matrix (V) with shape [M, Q, F].
+    Y : np.ndarray
+        Spherical harmonic matrix with shape [Q, (N_sh+1)**2].
+
+    Returns
+    -------
+    np.ndarray
+        The SE-ASM filter weights with shape [M, (N_sh+1)**2, F].
+    """
+    C = calculate_asm_coefficients(sm, Y)  # (M, L, F)
+
+    xi = linear_spectral_magnitude(C, sm, Y)  # (L, F)
+    # Bins with a zero solution (DC / Nyquist) carry no energy to equalize.
+    weights = np.where(xi > _EPS, 1.0 / np.maximum(xi, _EPS), 1.0)  # (L, F)
+
+    return C * weights[np.newaxis, :, :]
+
+
 class ASM:
     """
     Ambisonics Signal Matching (ASM) encoder.
     Calculates filters to encode microphone array signals into Ambisonics.
+
+    With ``spectrally_equalized=True`` the encoder instead produces
+    spectrally-equalized ASM (SE-ASM) filters, see
+    :func:`calculate_se_asm_coefficients`.
     """
 
     def __init__(
@@ -62,6 +138,7 @@ class ASM:
         array: SpatialSignal,
         fs: int = None,
         duration: float = None,
+        spectrally_equalized: bool = False,
     ):
         """
         Initialize ASM encoder.
@@ -76,12 +153,17 @@ class ASM:
             Sampling frequency. Must match array.fs if provided.
         duration : float, optional
             Duration of the filters.
+        spectrally_equalized : bool, optional
+            If True, equalize the linear spectral magnitude of every SH channel
+            over the whole spectrum (SE-ASM) instead of returning the plain ASM
+            solution. Default is False.
         """
         self._validate_inputs(sh_order, array, fs, duration)
         self.sh_order = sh_order
         self.array = array
         self.fs = fs
         self.duration = duration
+        self.spectrally_equalized = spectrally_equalized
 
         self._cnm = None
 
@@ -96,6 +178,8 @@ class ASM:
         """
         Calculate the ASM coefficients (filters).
 
+        Returns SE-ASM coefficients when ``spectrally_equalized`` is True.
+
         Returns
         -------
         SpatialSignal
@@ -103,7 +187,10 @@ class ASM:
         """
         sm = self.array.data
         Y = self.array.grid.Y(N_sp=self.sh_order)
-        asm_coefficients = calculate_asm_coefficients(sm, Y)
+        if self.spectrally_equalized:
+            asm_coefficients = calculate_se_asm_coefficients(sm, Y)
+        else:
+            asm_coefficients = calculate_asm_coefficients(sm, Y)
         self._cnm = SpatialSignal(
             data=asm_coefficients, fs=self.fs, is_time=False, is_space=False
         )
