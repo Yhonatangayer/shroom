@@ -184,6 +184,64 @@ If you use shroom in your research, please cite our paper:
 ```
 ## Changelog
 
+### 0.3.0
+
+Image-source-model fixes in `shroom.acoustics.Room`. Three of these change simulated
+output; the frequency-dependent absorption fix is the most consequential.
+
+**1. BREAKING: octave-band absorption is no longer collapsed.** `_compute_arir_ism`
+summed the per-band reflection amplitudes into a single broadband impulse
+(`att.sum(axis=0)`). With a frequency-dependent `pra.Material` this produced one
+spectrally flat reflection roughly `n_bands` (8) times too loud, discarding all
+frequency dependence — carpet and concrete gave identical responses. Each band is now
+accumulated separately and band-pass filtered before summing, mirroring
+`pra.Room.compute_rir`. A `pra.Material` built from eight identical coefficients `a`
+now matches scalar `absorption=a` to ~2e-07 of peak.
+
+This also affects `air_absorption=True`, which silently entered the same multi-band
+path (pyroomacoustics expands the damping to eight bands to apply air absorption), and
+was likewise ~8× too loud. Scalar and per-wall-dict absorption without air absorption
+are unaffected and remain **bit-identical** to 0.2.x.
+
+**2. BREAKING: randomized ISM is on by default.** New `use_rand_ism` (default `True`),
+`max_rand_disp` (default `0.08` m) and `seed` (default `0`) parameters, forwarded to
+`pra.ShoeBox`. Randomized ISM jitters image positions to break the perfectly periodic
+image lattice of a shoebox, the standard mitigation for the sweeping-echo and comb
+coloration a plain ISM produces at high reflection orders. For a 6×5×3 m room at order
+20 it reduces coincident image delays from 83% to 44% of 11521 images.
+
+The default `seed=0` keeps output reproducible. Note that the seed is re-applied per
+simulation, so two rooms yielding the same image count also get the same displacement
+pattern — vary `seed` per example when generating a dataset. Pass `seed=None` for
+unseeded behaviour.
+
+To reproduce results generated with shroom < 0.3.0, pass `use_rand_ism=False`:
+
+```python
+Room(dimensions=[6.0, 5.0, 3.0], absorption=0.2)                       # randomized (new default)
+Room(dimensions=[6.0, 5.0, 3.0], absorption=0.2, use_rand_ism=False)   # exact images (pre-0.3.0)
+```
+
+**3. BREAKING: `ray_tracing=True` now raises `NotImplementedError`.** It was accepted
+and validated but had no effect whatsoever on Ambisonic output: the ARIR is built
+purely from image sources and never reads the ray tracer's energy histograms, so the
+result was bit-identical with the flag on and off. It now fails loudly rather than
+silently. Use a `pra.Room` directly if you need pyroomacoustics' ray tracer.
+
+**4. New `Room.ism_coverage()` and a truncation warning.** The image source method
+truncates the response at the requested reflection order regardless of absorption, so a
+room can be given far less reverberation than its absorption implies — the cause of the
+metallic ringing reported for large, weakly absorbing rooms. `ism_coverage()` reports
+the Eyring T60, the achievable RIR length, their ratio, and the order needed to cover
+the T60; `compute_arir()` warns once when coverage falls below 1. For 6×5×3 m at
+`absorption=0.15` and order 20 the predicted T60 is 0.71 s but the ISM produces only
+0.36 s (coverage 0.50, order ~40 needed).
+
+**Known limitation.** These changes reduce the coloration of the late field but do not
+lengthen it. Past the ISM cut-off the response simply stops, and even at sufficient
+order the tail remains a comparatively sparse train of specular echoes rather than a
+diffuse field. Synthesizing a hybrid late tail is not implemented.
+
 ### 0.2.2
 
 **New: spectrally-equalized ASM (SE-ASM).** `ASM` gained a `spectrally_equalized`
