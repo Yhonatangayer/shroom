@@ -11,8 +11,8 @@ authors:
     given-names: Yhonatan
     orcid: "https://orcid.org/0009-0009-1156-9087"
     affiliation: "Ben-Gurion University of the Negev"
-version: 0.2.2
-date-released: "2026-07-30"
+version: 0.3.0
+date-released: "2026-08-13"
 license: MIT
 repository-code: "https://github.com/Yhonatangayer/shroom"
 url: "https://github.com/Yhonatangayer/shroom"

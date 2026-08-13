@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pyroomacoustics as pra
 from typing import Optional, List, Union, Dict, Tuple
@@ -53,6 +55,9 @@ class Room:
         temperature: Optional[float] = None,
         humidity: Optional[float] = None,
         ray_tracing: bool = False,
+        use_rand_ism: bool = True,
+        max_rand_disp: float = 0.08,
+        seed: Optional[int] = 0,
     ):
         """
         Initialize the Room simulation.
@@ -97,7 +102,38 @@ class Room:
         humidity : float, optional
             Relative humidity in percent (0-100). Used for air absorption. Default is 50.0.
         ray_tracing : bool, optional
-            If True, enables ray tracing for late reverberation (hybrid simulation). Default is False.
+            Must be False. Ray tracing is **not supported** by the ARIR path:
+            :meth:`compute_arir` / :meth:`compute_amb` are built purely from image
+            sources and never read the ray tracer's energy histograms, so enabling it
+            would change nothing. Passing True raises ``NotImplementedError`` rather
+            than silently ignoring it. To use pyroomacoustics' ray tracer, build a
+            ``pra.Room`` directly and call its ``compute_rir()``.
+        use_rand_ism : bool, optional
+            If True (default), image source positions are randomly displaced
+            (randomized image source method). This breaks the perfectly periodic image
+            lattice of a shoebox, which is the standard mitigation for the sweeping-echo
+            / comb coloration artifacts that a plain ISM produces at high reflection
+            orders. Set to False for exact image positions.
+
+            .. note::
+               The default changed to True in shroom 0.3.0. Results generated with
+               earlier versions require ``use_rand_ism=False`` to reproduce exactly.
+        max_rand_disp : float, optional
+            Maximum random displacement of an image source, in meters. Only used when
+            `use_rand_ism` is True. Default is 0.08 (the ``pyroomacoustics`` default).
+        seed : int, optional
+            Seed for the random image source displacements, applied immediately before
+            the image source model runs. Default is 0, which makes `use_rand_ism`
+            deterministic; pass None to leave ``pyroomacoustics``' generator untouched,
+            so repeated runs differ. Has no effect when `use_rand_ism` is False.
+
+            Because the seed is re-applied per simulation, two rooms that produce the
+            same number of image sources also get the same displacement pattern. When
+            generating a dataset, vary `seed` per example so the jitter is not shared
+            across them.
+
+            This reseeds ``pyroomacoustics``' own generator (``pra.random``), not
+            ``numpy.random``, so it does not disturb the caller's NumPy random state.
         """
         self._validate_inputs(
             dimensions,
@@ -111,6 +147,9 @@ class Room:
             temperature,
             humidity,
             ray_tracing,
+            use_rand_ism,
+            max_rand_disp,
+            seed,
         )
 
         self.dimensions = np.asarray(dimensions)
@@ -123,6 +162,9 @@ class Room:
         self.temperature = temperature
         self.humidity = humidity
         self.ray_tracing = ray_tracing
+        self.use_rand_ism = use_rand_ism
+        self.max_rand_disp = max_rand_disp
+        self.seed = seed
 
         self.absorption_mode = absorption_mode
 
@@ -159,6 +201,8 @@ class Room:
             temperature=self.temperature,
             humidity=self.humidity,
             ray_tracing=self.ray_tracing,
+            use_rand_ism=self.use_rand_ism,
+            max_rand_disp=self.max_rand_disp,
         )
 
         self.sources = []
@@ -275,8 +319,13 @@ class Room:
         if not self.sources:
             raise ValueError("At least one source must be added.")
 
-        # Run the image source model for all sources
+        # Run the image source model for all sources. Seeding immediately before the
+        # call makes the randomized-ISM displacements reproducible.
+        if self.seed is not None:
+            pra.random.seed(numpy=self.seed, libroom=self.seed)
         self.pra_room.image_source_model()
+
+        self._warn_if_ism_truncates_reverb()
 
         arirs = []
 
@@ -340,6 +389,91 @@ class Room:
         )
         self._amb = output_signal
         return output_signal
+
+    def ism_coverage(self) -> Dict[str, float]:
+        """
+        Report how much of the room's reverberation tail the ISM can actually produce.
+
+        The image source method truncates the impulse response at the highest reflection
+        order requested, regardless of absorption. When that cut-off falls short of the
+        room's reverberation time the tail is both too short and too sparse (a thin train
+        of specular echoes rather than a diffuse field), which is audible as metallic
+        ringing.
+
+        Returns
+        -------
+        dict
+            ``mean_absorption``
+                Surface-area-weighted mean energy absorption coefficient (averaged over
+                octave bands when the materials are frequency dependent).
+            ``volume``, ``surface``
+                Room volume [m^3] and total wall area [m^2].
+            ``t60_eyring``
+                Eyring reverberation time [s], ``inf`` for a fully reflective room.
+            ``rir_length``
+                Length [s] of the ARIR the current `max_ism_order` produces.
+            ``exact_length``
+                True if `rir_length` was measured from the computed image sources, False
+                if it is a geometric estimate (the image source model has not been run
+                yet, e.g. no source/receiver set).
+            ``coverage``
+                ``rir_length / t60_eyring``. Values below 1 mean the tail is truncated.
+            ``required_order``
+                Approximate `max_ism_order` needed to reach ``coverage >= 1``.
+
+        Notes
+        -----
+        The number of image sources grows as the cube of the order, so a large
+        ``required_order`` is often impractical; randomized ISM (`use_rand_ism`) reduces
+        the coloration of a truncated tail but does not lengthen it.
+        """
+        L, W, H = (float(d) for d in self.dimensions)
+        volume = L * W * H
+        surface = 2.0 * (L * W + L * H + W * H)
+        c = float(self.pra_room.c)
+
+        # Area-weighted mean energy absorption over all walls (and bands, if any).
+        num = 0.0
+        den = 0.0
+        for wall in self.pra_room.walls:
+            area = float(wall.area())
+            num += area * float(np.mean(wall.absorption))
+            den += area
+        mean_absorption = num / den if den > 0 else 0.0
+
+        if mean_absorption <= 0.0:
+            t60 = float("inf")
+        elif mean_absorption >= 1.0:
+            t60 = 0.0
+        else:
+            t60 = (
+                24.0
+                * np.log(10.0)
+                / c
+                * volume
+                / (-surface * np.log(1.0 - mean_absorption))
+            )
+
+        # Length of the response the current ISM order can produce.
+        rir_length, exact_length = self._ism_rir_length()
+
+        coverage = rir_length / t60 if t60 > 0 else float("inf")
+        if np.isfinite(coverage) and coverage > 0:
+            # The maximum image distance grows roughly linearly with the order.
+            required_order = int(np.ceil(self.max_order / coverage))
+        else:
+            required_order = self.max_order
+
+        return {
+            "mean_absorption": mean_absorption,
+            "volume": volume,
+            "surface": surface,
+            "t60_eyring": t60,
+            "rir_length": rir_length,
+            "exact_length": exact_length,
+            "coverage": coverage,
+            "required_order": required_order,
+        }
 
     def plot(self, ax=None, plane="xy", extra_obj=None, plot_3d=False):
         """
@@ -574,6 +708,9 @@ class Room:
         temperature: Optional[float],
         humidity: Optional[float],
         ray_tracing: bool,
+        use_rand_ism: bool = True,
+        max_rand_disp: float = 0.08,
+        seed: Optional[int] = 0,
     ) -> None:
         dimensions = np.asarray(dimensions)
         if dimensions.shape != (3,):
@@ -641,6 +778,82 @@ class Room:
             raise TypeError(
                 f"ray_tracing must be a boolean, got {type(ray_tracing).__name__}"
             )
+
+        if ray_tracing:
+            raise NotImplementedError(
+                "ray_tracing=True is not supported: compute_arir() builds the ARIR "
+                "from image sources only and never reads the ray tracer's energy "
+                "histograms, so enabling it would silently change nothing. Use "
+                "ray_tracing=False. For a denser, less metallic late field with the "
+                "image source method, use use_rand_ism=True and/or a higher "
+                "max_ism_order (see Room.ism_coverage()). If you need pyroomacoustics' "
+                "ray tracer, build a pra.Room directly and call its compute_rir()."
+            )
+
+        if not isinstance(use_rand_ism, bool):
+            raise TypeError(
+                f"use_rand_ism must be a boolean, got {type(use_rand_ism).__name__}"
+            )
+
+        if not (isinstance(max_rand_disp, (float, int)) and max_rand_disp >= 0):
+            raise ValueError(
+                f"max_rand_disp must be a non-negative number, got {max_rand_disp}"
+            )
+
+        if seed is not None and not isinstance(seed, (int, np.integer)):
+            raise TypeError(f"seed must be an integer or None, got {type(seed).__name__}")
+
+    def _ism_rir_length(self) -> Tuple[float, bool]:
+        """
+        Length [s] of the response the current ISM order produces.
+
+        Returns ``(length, exact)``. When image sources have already been computed the
+        length is measured from them (`exact` True); otherwise it falls back to a
+        geometric estimate based on the room dimensions and the reflection order.
+        """
+        c = float(self.pra_room.c)
+
+        ism_done = self.pra_room.simulator_state.get("ism_done", False)
+        if ism_done and self.receiver_position is not None and self.pra_room.sources:
+            lengths = [
+                np.linalg.norm(
+                    src.images - self.receiver_position[:, None], axis=0
+                ).max()
+                for src in self.pra_room.sources
+                if getattr(src, "images", None) is not None
+            ]
+            if lengths:
+                return float(max(lengths)) / c, True
+
+        # Fallback: the farthest image is obtained by spending the whole reflection
+        # budget on the longest axis, plus at most one room diagonal of offset.
+        dims = np.asarray(self.dimensions, dtype=float)
+        est = self.max_order * dims.max() + np.linalg.norm(dims)
+        return float(est) / c, False
+
+    def _warn_if_ism_truncates_reverb(self) -> None:
+        """Warn (once per Room) if `max_ism_order` cannot cover the predicted T60."""
+        if getattr(self, "_coverage_warned", False):
+            return
+        self._coverage_warned = True
+
+        info = self.ism_coverage()
+        if not np.isfinite(info["t60_eyring"]) or info["coverage"] >= 1.0:
+            return
+
+        warnings.warn(
+            f"max_ism_order={self.max_order} covers only "
+            f"{info['coverage'] * 100:.0f}% of this room's reverberation time: the "
+            f"predicted Eyring T60 is {info['t60_eyring']:.2f} s (mean energy "
+            f"absorption {info['mean_absorption']:.2f}) but the image source model "
+            f"produces at most {info['rir_length']:.2f} s. The tail is truncated and "
+            f"sparse, which sounds metallic. Reaching the full T60 length would need "
+            f"max_ism_order~{info['required_order']} (image count grows as the cube of "
+            f"the order, and the tail stays comparatively sparse even then). "
+            f"See Room.ism_coverage().",
+            UserWarning,
+            stacklevel=3,
+        )
 
     def _compute_arir_ism(
         self, source_idx: int, sh_order: int, fdl: int
@@ -716,17 +929,41 @@ class Room:
         # Y_all: (n_sh_channels, n_images) — all SH values in one call
         Y_all = sph_harm_y(ns_arr, ms_arr, colatitude[None, :], azimuth[None, :]).conj()
 
-        # Effective amplitude per image source: sum bands, then weight by SH
-        # oct_band_amplitude: (n_bands, n_images) — sum over bands first
-        att_summed = oct_band_amplitude.sum(axis=0)  # (n_images,)
-        gains_all = Y_all * att_summed  # (n_sh_channels, n_images)
+        def _delay_sum(amplitude: np.ndarray) -> np.ndarray:
+            """Overlap-add every image source, weighted by SH and `amplitude`."""
+            gains_all = Y_all * amplitude  # (n_sh_channels, n_images)
+            out = np.zeros((n_sh_channels, N), dtype=np.complex128)
+            for i in range(len(time_ip)):
+                end = min(time_ip[i] + fdl, N)
+                length = end - time_ip[i]
+                out[:, time_ip[i] : end] += (
+                    gains_all[:, i : i + 1] * frac_delays[i : i + 1, :length]
+                )
+            return out
 
-        for i in range(len(time_ip)):
-            end = min(time_ip[i] + fdl, N)
-            length = end - time_ip[i]
-            arir_data[0, :, time_ip[i] : end] += (
-                gains_all[:, i : i + 1] * frac_delays[i : i + 1, :length]
-            )
+        n_bands = oct_band_amplitude.shape[0]
+
+        if n_bands == 1:
+            # Frequency-flat absorption: a single broadband delta train, no filtering.
+            arir_data[0] = _delay_sum(oct_band_amplitude.sum(axis=0))
+        else:
+            # Frequency-dependent absorption: build one delta train per octave band and
+            # band-pass each one before summing, mirroring pra.Room.compute_rir (see
+            # pyroomacoustics.simulation.ism.compute_ism_rir, `n_bands > 1` branch).
+            # Summing the band amplitudes into a single delta instead would discard all
+            # frequency dependence and overestimate the level by ~n_bands.
+            octave_bands = self.pra_room.octave_bands
+            if n_bands != octave_bands.n_bands:
+                raise ValueError(
+                    f"Number of absorption bands ({n_bands}) does not match the room's "
+                    f"octave filter bank ({octave_bands.n_bands} bands)."
+                )
+            for b in range(n_bands):
+                band_ir = _delay_sum(oct_band_amplitude[b])
+                # The band filters are real, so real and imaginary parts of the complex
+                # SH signal are filtered independently.
+                arir_data[0] += octave_bands.analysis(band_ir.real, band=b)
+                arir_data[0] += 1j * octave_bands.analysis(band_ir.imag, band=b)
 
         if self._remove_dc:
             # Enforce zero mean for higher order SH channels (n > 0)
