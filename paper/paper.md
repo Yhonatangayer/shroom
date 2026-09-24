@@ -52,19 +52,19 @@ To address the fragmented availability of tools within this spatial audio workfl
 ### Table 1: Capability comparison of open-source spatial-audio software
 
 | Software | Language | Room sim. & ARIR | SH domain ATF processing | MagLS | SH rotation | SH array simulation | Array encoding |
-|---|---|---|---|---|---|---|---|
-| pyroomacoustics | Python | ✔ (ISM) | - | - | - | - | - |
-| GSound-SIR | Python | ✔ (RT) | - | - | - | - | - |
-| MASP | Python | ✔ (ISM) | ✔ | - | - | ✔ | ✔ |
-| shoebox-roomsim | MatLab | ✔ (ISM) | - | - | - | - | - |
-| MCRoomSim | MatLab | ✔ (ISM) | - | - | - | - | - |
-| SAF | C / C++ | ✔ (ISM) | ✔ | ✔ | ✔ | ✔ | ✔ |
-| spaudiopy | Python | - | ✔ | ✔ | ✔ | ✔ | ✔ |
-| sound-field-analysis-py | Python | - | ✔ | - | - | ✔ | ✔ |
-| pyfar / spharpy | Python | - | ✔ | - | ✔ | ✔ | ✔ |
-| **SHroom** | **Python** | **✔ (ISM)** | **✔** | **✔** | **✔** | **✔** | **✔** |
+|----------------------|----------|------------|-----------|--------|---------|----------|---------|
+| pyroomacoustics | Python | $\checkmark$ (ISM) | - | - | - | - | - |
+| GSound-SIR | Python | $\checkmark$ (RT) | - | - | - | - | - |
+| MASP | Python | $\checkmark$ (ISM) | $\checkmark$ | - | - | $\checkmark$ | $\checkmark$ |
+| shoebox-roomsim | MATLAB | $\checkmark$ (ISM) | - | - | - | - | - |
+| MCRoomSim | MATLAB | $\checkmark$ (ISM) | - | - | - | - | - |
+| SAF | C / C++ | $\checkmark$ (ISM) | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| spaudiopy | Python | - | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| sound-field-analysis-py | Python | - | $\checkmark$ | - | - | $\checkmark$ | $\checkmark$ |
+| pyfar / spharpy | Python | - | $\checkmark$ | - | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| **SHroom** | **Python** | **$\checkmark$ (ISM)** | **$\checkmark$** | **$\checkmark$** | **$\checkmark$** | **$\checkmark$** | **$\checkmark$** |
 
-*Note: ✔ = provided as a first-class feature; - = not provided. "Language" refers to the user-facing interface language of the software. "Room sim. & ARIR" means the simulated room field is exposed to the user as SH coefficients. "SH array simulation" means modal simulation of rigid or open spherical arrays with radial filters, not merely the placement of pressure microphones in a room. "Array encoding" means encoding those signals from arbitrary array geometries. SAF provides the individual capabilities as independent C modules rather than as one composable pipeline.*
+*Note: $\checkmark$ = provided as a first-class feature; - = not provided. "Language" refers to the user-facing interface language of the software. "Room sim. & ARIR" means the simulated room field is exposed to the user as SH coefficients. "SH array simulation" means modal simulation of rigid or open spherical arrays with radial filters, not merely the placement of pressure microphones in a room. "Array encoding" means encoding those signals from arbitrary array geometries. SAF provides the individual capabilities as independent C modules rather than as one composable pipeline.*
 
 # Software design
 
