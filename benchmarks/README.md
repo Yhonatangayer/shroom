@@ -10,6 +10,7 @@ error decays, validating the accuracy of the encoders against high-order referen
 | `se_asm_convergence.py` | Spectrally-equalized ASM (SE-ASM) vs. plain ASM: per-channel MSE/LSE and binaural magnitude error. |
 | `bsm_convergence.py` | Binaural Signal Matching (BSM) encoder error vs. SH order (against a MATLAB reference). |
 | `aa_magls_convergence.py` | Array-aware MagLS binaural magnitude error vs. SH order. |
+| `arir_vs_pra.py` | ARIR accuracy and run time vs. pyroomacoustics spherical-harmonic receivers (same ISM engine). Needs pyroomacoustics >= 0.10; does not need `shroom_dev`. |
 
 ## Requirements
 
@@ -31,6 +32,7 @@ python benchmarks/asm_convergence.py
 python benchmarks/se_asm_convergence.py
 python benchmarks/bsm_convergence.py
 python benchmarks/aa_magls_convergence.py
+python benchmarks/arir_vs_pra.py
 ```
 
 Each script writes its figures to `benchmarks/figures/`.

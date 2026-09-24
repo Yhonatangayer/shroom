@@ -1,4 +1,79 @@
-@inproceedings{scheibler2018ICASSP,
+@inproceedings{Shai-paper,
+  author    = {Hermon, Shai and Tourbabin, Vladimir and Ben-Hur, Zamir and Donley, Jacob and Rafaely, Boaz},
+  title     = {{Binaural signal matching with an arbitrary array based on a sound field model}},
+  booktitle = {Proceedings of the AES International Conference on Audio for Virtual and Augmented Reality (AVAR)},
+  month     = {August},
+  year      = {2022},
+  address   = {Redmond, WA, USA},
+  publisher = {Audio Engineering Society},
+  url       = {https://www.aes.org/e-lib/browse.cfm?elib=21861}
+}
+
+@article{Parametric-ASM-like-paper,
+  author  = {McCormack, Leo and Politis, Archontis and Gonzalez, Raimundo and Lokki, Tapio and Pulkki, Ville},
+  journal = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
+  title   = {{Parametric Ambisonic Encoding of Arbitrary Microphone Arrays}},
+  year    = {2022},
+  volume  = {30},
+  pages   = {2062--2075},
+  doi     = {10.1109/TASLP.2022.3182857}
+}
+
+@misc{HRTF_data_set,
+  author    = {Bernsch{\"u}tz, Benjamin},
+  title     = {{Spherical Far-Field HRIR Compilation of the Neumann KU100}},
+  year      = {2020},
+  publisher = {Zenodo},
+  month     = {7},
+  doi       = {10.5281/zenodo.3928297},
+  url       = {https://doi.org/10.5281/zenodo.3928297}
+}
+
+@inproceedings{HRTF_MagLS,
+  title     = {{Binaural rendering of ambisonic signals via magnitude least squares}},
+  author    = {Sch{\"o}rkhuber, Christian and Zaunschirm, Markus and H{\"o}ldrich, Robert},
+  booktitle = {Proceedings of the DAGA},
+  volume    = {44},
+  pages     = {339--342},
+  year      = {2018}
+}
+
+@article{Ambisonics_MagLS,
+  author  = {L{\"u}beck, Tim and Helmholz, Hannes and Arend, Johannes and P{\"o}rschmann, Christoph and Ahrens, Jens},
+  year    = {2020},
+  month   = {07},
+  pages   = {428--440},
+  title   = {Perceptual Evaluation of Mitigation Approaches of Impairments due to Spatial Undersampling in Binaural Rendering of Spherical Microphone Array Data},
+  volume  = {68},
+  journal = {Journal of the Audio Engineering Society},
+  doi     = {10.17743/jaes.2020.0038}
+}
+
+@inproceedings{ASM,
+  author    = {Gayer, Yhonatan and Tourbabin, Vladimir and Ben-Hur, Zamir and Donley, Jacob and Rafaely, Boaz},
+  booktitle = {2024 IEEE International Conference on Acoustics, Speech, and Signal Processing Workshops (ICASSPW)},
+  title     = {Ambisonics Encoding For Arbitrary Microphone Arrays Incorporating Residual Channels For Binaural Reproduction},
+  year      = {2024},
+  pages     = {244--248},
+  doi       = {10.1109/ICASSPW62465.2024.10627373}
+}
+
+@article{BSM_journal_paper,
+  title   = {Design and Analysis of binaural signal matching with arbitrary microphone arrays},
+  author  = {Madmoni, Lior and Ben-Hur, Zamir and Donley, Jacob and Tourbabin, Vladimir and Rafaely, Boaz},
+  journal = {arXiv preprint arXiv:2408.03581},
+  year    = {2024}
+}
+
+@phdthesis{kassakian2006convex,
+  author  = {Kassakian, P. W.},
+  title   = {Convex approximation and optimization with applications in magnitude filter design and radiation pattern synthesis},
+  school  = {University of California, Berkeley},
+  address = {Berkeley, CA},
+  year    = {2006}
+}
+
+@inproceedings{pyroomacoustics-Scheibler2018,
   author    = {Scheibler, Robin and Bezzam, Eric and Dokmani{\'c}, Ivan},
   title     = {Pyroomacoustics: A Python Package for Audio Room Simulation and Array Processing Algorithms},
   booktitle = {IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
@@ -7,70 +82,57 @@
   doi       = {10.1109/ICASSP.2018.8461310}
 }
 
-@article{allen1979JASA,
-  author  = {Allen, Jont B. and Berkley, David A.},
-  title   = {Image method for efficiently simulating small-room acoustics},
-  journal = {The Journal of the Acoustical Society of America},
-  volume  = {65},
-  year    = {1979},
-  number  = {4},
-  pages   = {943--950},
-  doi     = {10.1121/1.382599}
+@article{gayer2026TASLP,
+  title     = {Array-Aware Ambisonics and {HRTF} Encoding for Binaural Reproduction With Wearable Arrays},
+  author    = {Gayer, Yhonatan and Tourbabin, Vladimir and Ben-Hur, Zamir and Lou-Alon, David and Rafaely, Boaz},
+  journal   = {IEEE Transactions on Audio, Speech and Language Processing},
+  year      = {2026},
+  publisher = {IEEE}
 }
 
-@book{rafaely2015SphArray,
-  title     = {Fundamentals of Spherical Array Processing},
-  author    = {Rafaely, Boaz},
-  volume    = {8},
-  year      = {2015},
-  publisher = {Springer},
-  doi       = {10.1007/978-3-662-46912-9}
+@misc{hold2025spaudiopy,
+  title        = {{spaudiopy}: Spatial Audio Python Package},
+  author       = {Hold, Christoph},
+  year         = {2025},
+  note         = {Version 0.2.0, MIT licence},
+  url = {https://github.com/chris-hld/spaudiopy}
 }
 
-@InProceedings{zotter2019Ambisonics,
-  author = {Zotter, Franz and Frank, Matthias},
-  year = {2019},
-  month = {01},
-  pages = {},
-  title = {{Ambisonics: A Practical 3D Audio Theory for Recording, Studio Production, Sound Reinforcement, and Virtual Reality}},
-  isbn = {978-3-030-17206-0},
-  doi = {10.1007/978-3-030-17207-7}
+@misc{saf2024framework,
+  title        = {{Spatial\_Audio\_Framework}: A Cross-Platform Framework for Developing Spatial Audio Algorithms and Software in {C}/{C}++},
+  author       = {McCormack, Leo and Politis, Archontis},
+  year         = {2024},
+  url = {https://github.com/leomccormack/Spatial_Audio_Framework}
 }
 
-@InProceedings{schorkhuber2018DAGA,
-  title={{Binaural rendering of ambisonic signals via magnitude least squares}},
-  author={Sch{\"o}rkhuber, Christian and Zaunschirm, Markus and H{\"o}ldrich, Robert},
-  booktitle={{Proceedings of the DAGA}},
-  volume={44},
-  pages={339--342},
-  year={2018}
+@inproceedings{wabnitz2010ISRA,
+  title     = {Room Acoustics Simulation for Multichannel Microphone Arrays},
+  author    = {Wabnitz, Andrew and Epain, Nicolas and Jin, Craig and van Schaik, Andr{\'e}},
+  booktitle = {Proceedings of the International Symposium on Room Acoustics (ISRA)},
+  address   = {Melbourne, Australia},
+  year      = {2010}
 }
 
-@article{lubeck2020JAES,
-  author = {Lübeck, Tim and Helmholz, Hannes and Arend, Johannes and Pörschmann, Christoph and Ahrens, Jens},
-  year = {2020},
-  month = {07},
-  pages = {428-440},
-  title = {Perceptual Evaluation of Mitigation Approaches of Impairments due to Spatial Undersampling in Binaural Rendering of Spherical Microphone Array Data},
-  volume = {68},
-  journal = {Journal of the Audio Engineering Society},
-  doi = {10.17743/jaes.2020.0038}
+@misc{zang2025GSoundSIR,
+  title         = {{GSound-SIR}: A Spatial Impulse Response Ray-Tracing and High-Order Ambisonic Auralization Python Toolkit},
+  author        = {Zang, Yongyi and Kong, Qiuqiang},
+  year          = {2025},
+  eprint        = {2503.17866},
+  archiveprefix = {arXiv}
 }
 
-@InProceedings{rafaely2005TASP,
-  author={Rafaely, Boaz},
-  journal={IEEE Transactions on Speech and Audio Processing},
-  title={Analysis and design of spherical microphone arrays},
-  year={2005},
-  volume={13},
-  number={1},
-  pages={135-143},
-  doi={10.1109/TSA.2004.839244}
+@misc{politis2016roomsim,
+  title        = {Shoebox Room Simulator for Spatial Sound Processing},
+  author       = {Politis, Archontis},
+  year         = {2016},
+  url = {https://github.com/polarch/shoebox-roomsim},
+  note         = {MATLAB/Octave library}
 }
 
-@INPROCEEDINGS{gayer2024ICASSPW,
-  author={Gayer, Yhonatan and Tourbabin, Vladimir and Ben-Hur, Zamir and Donley, Jacob and Rafaely, Boaz},
-  title={FILL THIS IN},
-  booktitle={FILL THIS IN},
-  year={2024}
+@inproceedings{perezlopez2020AES,
+  title     = {A {Python} Library for Multichannel Acoustic Signal Processing},
+  author    = {Perez-Lopez, Andres and Politis, Archontis},
+  booktitle = {148th Convention of the Audio Engineering Society},
+  note      = {Paper 569},
+  year      = {2020}
 }
