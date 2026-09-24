@@ -172,14 +172,11 @@ binaural_output = decoder.process(room.compute_amb())
 If you use shroom in your research, please cite our paper:
 [SHroom: A Python Framework for Ambisonics Room Acoustics Simulation and Binaural Rendering](https://arxiv.org/abs/2603.27342)
 ```bibtex
-@misc{gayer2026shroompythonframeworkambisonics,
-      title={SHroom: A Python Framework for Ambisonics Room Acoustics Simulation and Binaural Rendering}, 
-      author={Yhonatan Gayer},
-      year={2026},
-      eprint={2603.27342},
-      archivePrefix={arXiv},
-      primaryClass={eess.AS},
-      url={https://arxiv.org/abs/2603.27342}, 
+@article{gayer2026shroom,
+  title={SHroom: A Python Framework for Ambisonics Room Acoustics Simulation and Binaural Rendering},
+  author={Gayer, Yhonatan},
+  journal={arXiv preprint arXiv:2603.27342},
+  year={2026}
 }
 ```
 ## Changelog
