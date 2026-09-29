@@ -26,19 +26,19 @@ bibliography: paper.bib
 
 Spatial audio research for virtual and augmented reality, teleconferencing and hearing devices often represents sound fields in the Spherical Harmonics (SH) domain, known as Ambisonics. A typical study simulates a room, renders what a listener or a microphone array would capture in it, and processes those signals in the SH domain. We present SHroom (Spherical Harmonics ROOM), an open-source Python library that performs this whole workflow in one package, from room simulation to binaural rendering, head rotation, microphone-array simulation and Ambisonics encoding.
 
-Existing tools cover either the room simulation or the downstream processing, so researchers bridge them with ad-hoc code that is hard to reproduce and compare. In SHroom, every step operates on one shared signal type through one processing interface, so a simulated room flows through the complete chain without format conversions. Built on the image-source engine of `pyroomacoustics`, SHroom reproduces the Ambisonic Room Impulse Response (ARIR) of its spherical-harmonic receivers while computing it about 3x faster for SH orders 4 to 12. SHroom is available at [https://github.com/Yhonatangayer/shroom](https://github.com/Yhonatangayer/shroom) and installable via `pip install pyshroom`.
+Existing tools cover either the room simulation or the downstream processing, so researchers bridge them with ad-hoc code that is hard to reproduce and compare. In SHroom, every step operates on one shared signal type through one processing interface, so a simulated room flows through the complete chain without format conversions. Built on the image-source engine of `pyroomacoustics`, SHroom reproduces the Ambisonic Room Impulse Response (ARIR) of its spherical-harmonic receivers while computing it about $3\times$ faster for SH orders 4 to 12. SHroom is available at [https://github.com/Yhonatangayer/shroom](https://github.com/Yhonatangayer/shroom) and installable via `pip install pyshroom`.
 
 # Statement of need
 
-The development and evaluation of spatial audio algorithms based on Ambisonics rely on the ability to simulate acoustic environments, process Ambisonics and other types of signals, and render binaural or loudspeaker signals. A typical research workflow encompasses various and diverse computational components: (i) the generation of Ambisonic Room Impulse Responses (ARIRs), (ii) the generation of Ambisonics signals by convolving dry audio signals with the ARIRs, (iii) Spherical Harmonics (SH) domain filtering, such as convolution with Head-Related Transfer Functions (HRTFs) or microphone array Acoustic Transfer functions (ATFs) to produce signals at the ears or at the microphones, (iv) additional SH-domain processing including operations such as Wigner-D based listener head rotations, modeling of spherical microphone array prototypes, processing of SH-domain HRTFs, and encoding of Ambisonics from microphones arrays. 
+The development and evaluation of spatial audio algorithms based on Ambisonics rely on the ability to simulate acoustic environments, process Ambisonics and other types of signals, and render binaural or loudspeaker signals. A typical research workflow encompasses diverse computational components: (i) the generation of ARIRs, (ii) the generation of Ambisonics signals by convolving dry audio signals with the ARIRs, (iii) SH-domain filtering, such as convolution with Head-Related Transfer Functions (HRTFs) or microphone array Acoustic Transfer Functions (ATFs) to produce signals at the ears or at the microphones, (iv) additional SH-domain processing including operations such as Wigner-D based listener head rotations, modeling of spherical microphone array prototypes, processing of SH-domain HRTFs, and encoding of Ambisonics from microphone arrays.
 
 Implementing all these computational components within a single computation tool would streamline the research workflow. However, existing software can only provide implementations for various parts of such workflow.
 
 # State of the field
 
-For stages (i) and (ii), several existing room-acoustics simulators can generate ARIRs and convolve them with dry audio signals to produce Ambisonic signals. As summarized in Table 1, `pyroomacoustics` (PRA) [@pyroomacoustics-Scheibler2018], MASP [@perezlopez2020AES], shoebox-roomsim [@politis2016roomsim], MCRoomSim [@wabnitz2010ISRA], and SAF [@saf2024framework] generate ARIRs using the image-source method (ISM), whereas GSound-SIR [@zang2025GSoundSIR] employs ray tracing (RT). These tools therefore cover room simulation and Ambisonics signal generation, but differ in the downstream processing they offer, as detailed in (iii) and (iv) above.
+For stages (i) and (ii), several existing room-acoustics simulators can generate ARIRs and convolve them with dry audio signals to produce Ambisonics signals. As summarized in Table 1, `pyroomacoustics` [@pyroomacoustics-Scheibler2018], MASP [@perezlopez2020AES], shoebox-roomsim [@politis2016roomsim], MCRoomSim [@wabnitz2010ISRA], and SAF [@saf2024framework] generate ARIRs using the image-source method (ISM), whereas GSound-SIR [@zang2025GSoundSIR] employs ray tracing (RT). These tools therefore cover room simulation and Ambisonics signal generation, but differ in the downstream processing they offer, as detailed in (iii) and (iv) above.
 
-For stage (iii), SH-domain filtering, such as convolution with HRTFs or ATFs support is fragmented (see column 'SH domain ATF processing' in Table 1). Tools such as MASP [@perezlopez2020AES], SAF [@saf2024framework], `spaudiopy` [@hold2025spaudiopy], `sound-field-analysis-py`, and `pyfar`/`spharpy` provide dedicated SH-domain ATF processing. In contrast, room simulators like `shoebox-roomsim` [@politis2016roomsim] and `MCRoomSim` [@wabnitz2010ISRA] do not provide post-simulation SH-domain ATF filtering.
+For stage (iii), support for SH-domain filtering, such as convolution with HRTFs or ATFs, is fragmented (see column 'SH domain ATF processing' in Table 1). Tools such as MASP [@perezlopez2020AES], SAF [@saf2024framework], `spaudiopy` [@hold2025spaudiopy], `sound-field-analysis-py`, and `pyfar`/`spharpy` provide dedicated SH-domain ATF processing. In contrast, room simulators like `shoebox-roomsim` [@politis2016roomsim] and `MCRoomSim` [@wabnitz2010ISRA] do not provide post-simulation SH-domain ATF filtering.
 
 Stage (iv) encompasses additional processing such as HRTF pre-processing (e.g. MagLS equalization), the application of SH rotation matrices for listener head tracking, modeling of open and rigid spherical microphone array prototypes, and Ambisonics array encoding. Specialized toolboxes such as `spaudiopy` [@hold2025spaudiopy] provide these capabilities, but omit room-acoustic engines altogether. Other packages cover only a subset of these features; for example, `pyfar`/`spharpy` lacks MagLS optimization, MASP [@perezlopez2020AES] and `sound-field-analysis-py` do not include native rotation matrices, and room simulators (`pyroomacoustics`, `GSound-SIR`, `shoebox-roomsim`, `MCRoomSim`) bypass stage (iv) entirely. While SAF [@saf2024framework] supports a comprehensive feature set, it does so through standalone C/C++ modules rather than a unified, scriptable workflow. In conclusion, no toolbox is currently available which offers this wide range of computations, which may be important in spatial audio processing research. 
 
@@ -76,9 +76,42 @@ The room model deliberately reuses the `pyroomacoustics` image-source engine for
 
 # Research impact statement
 
-SHroom provides open, tested Python implementations of ASM [@ASM], BSM [@BSM_journal_paper], MagLS [@HRTF_MagLS] and AA-MagLS [@gayer2026TASLP]. Its correctness is checked against independent references: driven from the same image-source engine, its ARIR reproduces the one obtained from `pyroomacoustics`' spherical-harmonic receivers up to the float32 precision of the `pyroomacoustics` output, while SHroom computes it in float64 and about 3x faster for $4 \le N \le 12$, and its BSM encoder is validated against a MATLAB reference. The repository ships benchmark scripts for this comparison and for the convergence of the ASM, spectrally equalized ASM, BSM and AA-MagLS encoders with SH order, and six runnable examples covering each binaural rendering path (HRTF, MagLS, ASM, ASM with AA-MagLS, BSM, and head rotation).
+SHroom provides open and tested Python implementations of ASM [@ASM],
+BSM [@BSM_journal_paper], MagLS [@HRTF_MagLS], and AA-MagLS
+[@gayer2026TASLP], together with functionality for Ambisonics and
+SH-domain processing. Two components have been validated against
+independent references. Using the same image-source engine, SHroom
+reproduces the ARIRs obtained with the spherical-harmonic receivers of
+`pyroomacoustics` to within the float32 precision of the latter, while
+computing in float64 and about $3\times$ faster for SH orders
+$4 \le N \le 12$. Its BSM encoder has been validated against an
+independent MATLAB reference. The repository
+provides benchmark scripts for these comparisons and for evaluating the
+convergence of the ASM, spectrally equalized ASM, BSM, and AA-MagLS
+encoders with increasing SH order. It also includes six runnable
+examples covering the available binaural rendering paths: HRTF, MagLS,
+ASM, ASM with AA-MagLS, BSM, and head rotation.
 
-SHroom is released on PyPI (`pip install pyshroom`), where it has been downloaded about 1,000 times since its first release in March 2026 (pypistats, excluding mirrors). It is tested by a 212-test suite in continuous integration across Python 3.9–3.13, and ships contribution guidelines and citation metadata.
+SHroom is currently used by the authors in ongoing research on spatial
+audio and Ambisonics. It is also used by researchers within the authors'
+research group as part of their research workflows, including through its
+integration into the open-source AmbiDrop project [@tatarjitzky2026ambidrop]. Several
+ongoing research projects within the group rely on SHroom, with
+corresponding publications currently in preparation.
+
+The authors have also received direct inquiries from researchers outside
+the research group regarding the use of SHroom in their research
+workflows. These interactions provide evidence of interest and use beyond
+the original development group. As further external research projects
+and publications become available, they will provide additional
+documented evidence of the adoption of SHroom.
+
+SHroom is publicly distributed through PyPI (`pip install pyshroom`) and
+has been downloaded approximately 1,000 times since its first release
+in March 2026, according to pypistats, excluding mirrors. The project is
+maintained through continuous integration with a 212-test suite covering
+Python 3.9–3.13, and provides contribution guidelines and citation
+metadata to support reuse and attribution.
 
 # AI usage disclosure
 
