@@ -32,7 +32,8 @@ class sphereicalGrid:
         orientation : Tuple or np.ndarray, optional
             Orientation vector (x, y, z) or Euler angles. Default is None.
         sh_type : str, optional
-            Type of Spherical Harmonics ('real' or 'complex'), by default 'real'.
+            Type of Spherical Harmonics ('real' or 'complex'), by default 'complex'.
+            'real' is not implemented yet.
         """
         # Normalize azimuth to [0, 2pi]
         az = np.mod(az, 2 * np.pi)
