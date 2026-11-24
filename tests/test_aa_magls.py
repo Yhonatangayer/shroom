@@ -1,6 +1,10 @@
 import pytest
 import numpy as np
-from shroom.acoustics.hrtf_processing import array_aware_magls_hrtf, magls_hrtf
+from shroom.acoustics.hrtf_processing import (
+    _validate_aa_magls_hrtf_inputs,
+    array_aware_magls_hrtf,
+    magls_hrtf,
+)
 from shroom.acoustics.spherical_array import SphericalArray
 from shroom.acoustics.spatial_signal import SpatialSignal
 from shroom.encoders.asm import ASM
@@ -184,7 +188,7 @@ def test_aa_magls_validation_sh_order_zero(aa_setup):
 
 
 def test_aa_magls_validation_negative_cutoff(aa_setup):
-    """Raises ValueError when cutoff_over_freq <= 0."""
+    """Raises ValueError when cutoff_over_freq < 0."""
     s = aa_setup
     with pytest.raises(ValueError, match="cutoff_over_freq"):
         array_aware_magls_hrtf(s["hrtf"], s["asm"], s["array"], s["sh_order"], -100.0)
@@ -231,3 +235,54 @@ def test_aa_magls_does_not_mutate_hrtf(aa_setup):
         s["hrtf"], s["asm"], s["array"], s["sh_order"], s["cutoff"]
     )
     np.testing.assert_array_equal(s["hrtf"].data, hrtf_before)
+
+
+# ---------------------------------------------------------------------------
+# Input validation shared by magls_hrtf() and array_aware_magls_hrtf()
+# ---------------------------------------------------------------------------
+
+
+def _call_both(s, sh_order, cutoff):
+    """Run both functions with the same sh_order and cutoff."""
+    magls_hrtf(s["hrtf"], sh_order, cutoff)
+    array_aware_magls_hrtf(s["hrtf"], s["asm"], s["array"], sh_order, cutoff)
+
+
+@pytest.mark.parametrize("bad_order", [0, -1, 1.0, 1.5, "1", None, True])
+def test_magls_functions_reject_bad_sh_order(aa_setup, bad_order):
+    """Both functions require sh_order to be an integer >= 1."""
+    s = aa_setup
+    with pytest.raises(ValueError, match="sh_order"):
+        magls_hrtf(s["hrtf"], bad_order, s["cutoff"])
+    with pytest.raises(ValueError, match="sh_order"):
+        array_aware_magls_hrtf(s["hrtf"], s["asm"], s["array"], bad_order, s["cutoff"])
+
+
+@pytest.mark.parametrize("bad_cutoff", [-1.0, -100, float("nan"), "500", None, True])
+def test_magls_functions_reject_bad_cutoff(aa_setup, bad_cutoff):
+    """Both functions require cutoff_over_freq to be a number >= 0."""
+    s = aa_setup
+    with pytest.raises(ValueError, match="cutoff_over_freq"):
+        magls_hrtf(s["hrtf"], s["sh_order"], bad_cutoff)
+    with pytest.raises(ValueError, match="cutoff_over_freq"):
+        array_aware_magls_hrtf(
+            s["hrtf"], s["asm"], s["array"], s["sh_order"], bad_cutoff
+        )
+
+
+def test_magls_functions_accept_int64_sh_order(aa_setup):
+    """A NumPy integer is a valid sh_order for both functions."""
+    s = aa_setup
+    _call_both(s, np.int64(s["sh_order"]), s["cutoff"])
+
+
+def test_magls_hrtf_accepts_zero_cutoff(aa_setup):
+    """cutoff_over_freq of 0 is allowed: MagLS then applies from the first bin."""
+    s = aa_setup
+    magls_hrtf(s["hrtf"], s["sh_order"], 0)
+
+
+def test_aa_magls_validation_accepts_zero_cutoff(aa_setup):
+    """cutoff_over_freq of 0 passes the array-aware input check."""
+    s = aa_setup
+    _validate_aa_magls_hrtf_inputs(s["hrtf"], s["asm"], s["array"], s["sh_order"], 0)

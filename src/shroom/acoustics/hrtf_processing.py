@@ -8,10 +8,33 @@ from shroom.utils.dsp_utils import (
 from shroom.utils.amb_utils import get_tilde_matrix
 
 
-def _validate_magls_hrtf_inputs(hrtf, sh_order, cross_over_freq):
+def _validate_sh_order_and_cutoff(fn_name, sh_order, cutoff_over_freq):
+    """Checks shared by magls_hrtf() and array_aware_magls_hrtf()."""
+    if (
+        isinstance(sh_order, bool)
+        or not isinstance(sh_order, (int, np.integer))
+        or sh_order < 1
+    ):
+        raise ValueError(
+            f"{fn_name}() expects sh_order to be an integer >= 1, got {sh_order!r}."
+        )
+
+    if (
+        isinstance(cutoff_over_freq, bool)
+        or not isinstance(cutoff_over_freq, (int, float, np.integer, np.floating))
+        or not cutoff_over_freq >= 0
+    ):
+        raise ValueError(
+            f"{fn_name}() expects cutoff_over_freq to be a number >= 0, "
+            f"got {cutoff_over_freq!r}."
+        )
+
+
+def _validate_magls_hrtf_inputs(hrtf, sh_order, cutoff_over_freq):
     if not hrtf.is_space:
         raise ValueError("magls_hrtf() expects input hrtf to be in space domain.")
-    return
+
+    _validate_sh_order_and_cutoff("magls_hrtf", sh_order, cutoff_over_freq)
 
 def _validate_aa_magls_hrtf_inputs(hrtf, asm, array, sh_order, cutoff_over_freq):
     if not hrtf.is_space:
@@ -29,11 +52,7 @@ def _validate_aa_magls_hrtf_inputs(hrtf, asm, array, sh_order, cutoff_over_freq)
     if not asm.cnm.is_sh:
         raise ValueError("array_aware_magls_hrtf() expects asm.cnm to be in SH domain.")
 
-    if not isinstance(sh_order, int) or sh_order < 1:
-        raise ValueError(f"sh_order must be a positive integer, got {sh_order}.")
-
-    if cutoff_over_freq <= 0:
-        raise ValueError(f"cutoff_over_freq must be positive, got {cutoff_over_freq}.")
+    _validate_sh_order_and_cutoff("array_aware_magls_hrtf", sh_order, cutoff_over_freq)
 
     if hrtf.fs is not None and array.fs is not None and hrtf.fs != array.fs:
         raise ValueError(
